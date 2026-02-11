@@ -1,0 +1,2 @@
+# deezed
+ai workout app
