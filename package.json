@@ -1,0 +1,39 @@
+{
+  "name": "deezed",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:mobile": "npm run dev --workspace=apps/mobile",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "db:migrate": "npm run db:migrate --workspace=apps/api",
+    "db:seed": "npm run db:seed --workspace=apps/api",
+    "db:studio": "npm run db:studio --workspace=apps/api",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\""
+  },
+  "dependencies": {
+    "expo": "~54.0.0",
+    "@prisma/client": "5.22.0",
+    "ajv": "^8.17.1",
+    "prisma": "5.22.0",
+    "react-native-worklets": "^0.5.0"
+  },
+  "devDependencies": {
+    "@babel/plugin-transform-template-literals": "^7.24.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "npm@10.0.0"
+}

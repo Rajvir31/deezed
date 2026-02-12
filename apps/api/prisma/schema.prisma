@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── User Profile ─────────────────────────────────────────
+model UserProfile {
+  id                String   @id @default(uuid())
+  clerkId           String   @unique
+  email             String   @unique
+  displayName       String
+  experienceLevel   String   // beginner | intermediate | advanced
+  goal              String   // hypertrophy | strength | cut
+  daysPerWeek       Int
+  equipment         String[] // array of equipment access types
+  injuries          String[] @default([])
+  dateOfBirth       DateTime?
+  isAgeVerified     Boolean  @default(false)
+  onboardingComplete Boolean @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  workoutPlans    WorkoutPlan[]
+  workoutSessions WorkoutSession[]
+  bodyMetrics     BodyMetric[]
+  photoAssets     PhotoAsset[]
+  aiResults       AIResult[]
+
+  @@map("user_profiles")
+}
+
+// ── Exercise Library ─────────────────────────────────────
+model Exercise {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  muscleGroups String[]
+  equipment    String[]
+  instructions String
+  videoUrl     String?
+  createdAt    DateTime @default(now())
+
+  @@map("exercises")
+}
+
+// ── Workout Plan ─────────────────────────────────────────
+model WorkoutPlan {
+  id        String   @id @default(uuid())
+  userId    String
+  splitType String
+  goal      String
+  weeks     Json     // PlanWeek[] stored as JSON
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user     UserProfile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions WorkoutSession[]
+
+  @@map("workout_plans")
+}
+
+// ── Workout Session ──────────────────────────────────────
+model WorkoutSession {
+  id         String    @id @default(uuid())
+  userId     String
+  planId     String
+  weekNumber Int
+  dayNumber  Int
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  completed  Boolean   @default(false)
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  sets SetLog[]
+
+  @@map("workout_sessions")
+}
+
+// ── Set Log ──────────────────────────────────────────────
+model SetLog {
+  id         String   @id @default(uuid())
+  sessionId  String
+  exerciseId String
+  setNumber  Int
+  reps       Int
+  weight     Float
+  rpe        Float?
+  timestamp  DateTime @default(now())
+
+  session WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("set_logs")
+}
+
+// ── Body Metric ──────────────────────────────────────────
+model BodyMetric {
+  id             String   @id @default(uuid())
+  userId         String
+  weight         Float?
+  bodyFatPercent Float?
+  chest          Float?
+  waist          Float?
+  hips           Float?
+  bicepLeft      Float?
+  bicepRight     Float?
+  thighLeft      Float?
+  thighRight     Float?
+  date           DateTime
+  createdAt      DateTime @default(now())
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("body_metrics")
+}
+
+// ── Photo Asset ──────────────────────────────────────────
+model PhotoAsset {
+  id         String   @id @default(uuid())
+  userId     String
+  type       String   // progress | physique_input | physique_output
+  storageKey String   @unique
+  createdAt  DateTime @default(now())
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("photo_assets")
+}
+
+// ── AI Result ────────────────────────────────────────────
+model AIResult {
+  id         String   @id @default(uuid())
+  userId     String
+  type       String   // plan | coach | physique
+  inputRefs  Json
+  outputJson Json
+  createdAt  DateTime @default(now())
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_results")
+}
