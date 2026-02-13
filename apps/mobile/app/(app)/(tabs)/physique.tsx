@@ -41,6 +41,67 @@ export default function PhysiqueScreen() {
   const [result, setResult] = useState<PhysiqueAIOutput | null>(null);
   const [step, setStep] = useState<"upload" | "configure" | "result">("upload");
 
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "We need access to your photo library.");
+      return;
+    }
+
+    const pickerResult = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 0.8,
+    });
+
+    if (!pickerResult.canceled && pickerResult.assets[0]) {
+      const asset = pickerResult.assets[0];
+      setSelectedImage(asset.uri);
+
+      try {
+        // Get upload URL
+        const uploadInfo = await getUploadUrl.mutateAsync({
+          fileName: `physique-${Date.now()}.jpg`,
+          contentType: "image/jpeg",
+        });
+
+        // Upload the image
+        const response = await fetch(asset.uri);
+        const blob = await response.blob();
+
+        await fetch(uploadInfo.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": "image/jpeg" },
+          body: blob,
+        });
+
+        setStorageKey(uploadInfo.storageKey);
+        setStep("configure");
+      } catch (err) {
+        console.error("Upload failed:", err);
+        Alert.alert("Upload Failed", "Please try again.");
+      }
+    }
+  };
+
+  const handleAnalyze = async () => {
+    if (!storageKey) return;
+
+    try {
+      const res = await analyze.mutateAsync({
+        photoStorageKey: storageKey,
+        scenario,
+        focusMuscle: scenario === "single_muscle_focus" ? focusMuscle : undefined,
+      });
+      setResult(res);
+      setStep("result");
+    } catch (err) {
+      console.error("Analysis failed:", err);
+      Alert.alert("Analysis Failed", "Please try again.");
+    }
+  };
+
   // Age Gate Check
   if (!profile?.isAgeVerified) {
     return (
@@ -75,8 +136,9 @@ export default function PhysiqueScreen() {
                     ).toISOString(),
                     confirmsOver18: true,
                   });
-                } catch (err) {
-                  Alert.alert("Verification Failed", "You must be 18 or older.");
+                } catch (err: unknown) {
+                  const message = err instanceof Error ? err.message : "Unknown error";
+                  Alert.alert("Verification Failed", message);
                 }
               }}
               disabled={verifyAge.isPending}
@@ -158,67 +220,6 @@ export default function PhysiqueScreen() {
       </SafeAreaView>
     );
   }
-
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission needed", "We need access to your photo library.");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [3, 4],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      setSelectedImage(asset.uri);
-
-      try {
-        // Get upload URL
-        const uploadInfo = await getUploadUrl.mutateAsync({
-          fileName: `physique-${Date.now()}.jpg`,
-          contentType: "image/jpeg",
-        });
-
-        // Upload the image
-        const response = await fetch(asset.uri);
-        const blob = await response.blob();
-
-        await fetch(uploadInfo.uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": "image/jpeg" },
-          body: blob,
-        });
-
-        setStorageKey(uploadInfo.storageKey);
-        setStep("configure");
-      } catch (err) {
-        console.error("Upload failed:", err);
-        Alert.alert("Upload Failed", "Please try again.");
-      }
-    }
-  };
-
-  const handleAnalyze = async () => {
-    if (!storageKey) return;
-
-    try {
-      const res = await analyze.mutateAsync({
-        photoStorageKey: storageKey,
-        scenario,
-        focusMuscle: scenario === "single_muscle_focus" ? focusMuscle : undefined,
-      });
-      setResult(res);
-      setStep("result");
-    } catch (err) {
-      console.error("Analysis failed:", err);
-      Alert.alert("Analysis Failed", "Please try again.");
-    }
-  };
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">

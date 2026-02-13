@@ -1,5 +1,5 @@
 import "../global.css";
-import { useEffect } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { Slot } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
@@ -17,22 +17,40 @@ const queryClient = new QueryClient({
 
 const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
-// Only syncs token to store; redirects happen inside routes (avoids "prevent remove context" error)
+// Clerk JWTs expire after ~60s. Refresh every 45s to keep the token valid.
+const TOKEN_REFRESH_INTERVAL_MS = 45_000;
+
+// Syncs Clerk token to Zustand store and refreshes it periodically
 function TokenSyncAndSlot() {
   const { isSignedIn, getToken } = useAuth();
   const setToken = useAuthStore((s) => s.setToken);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const syncToken = useCallback(async () => {
+    if (isSignedIn) {
+      const token = await getToken();
+      setToken(token);
+    } else {
+      setToken(null);
+    }
+  }, [isSignedIn, getToken, setToken]);
 
   useEffect(() => {
-    const syncToken = async () => {
-      if (isSignedIn) {
-        const token = await getToken();
-        setToken(token);
-      } else {
-        setToken(null);
+    // Sync immediately
+    syncToken();
+
+    // Refresh periodically while signed in
+    if (isSignedIn) {
+      intervalRef.current = setInterval(syncToken, TOKEN_REFRESH_INTERVAL_MS);
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
-    syncToken();
-  }, [isSignedIn, getToken, setToken]);
+  }, [isSignedIn, syncToken]);
 
   return <Slot />;
 }

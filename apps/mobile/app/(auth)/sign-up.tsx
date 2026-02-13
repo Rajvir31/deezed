@@ -21,7 +21,15 @@ export default function SignUpScreen() {
     setLoading(true);
 
     try {
-      await signUp.create({ emailAddress: email, password });
+      const result = await signUp.create({ emailAddress: email, password });
+
+      // If Clerk already completed signup (no verification required), activate session
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        return;
+      }
+
+      // Otherwise, email verification is enabled — send the code
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
     } catch (err: unknown) {

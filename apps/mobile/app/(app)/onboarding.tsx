@@ -67,6 +67,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const [injury, setInjury] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [networkError, setNetworkError] = useState("");
 
   const canAdvance = (): boolean => {
@@ -87,9 +88,10 @@ export default function OnboardingScreen() {
       return;
     }
 
-    // Final step - save profile and generate plan
+    // Final step - save profile, then generate plan
     setLoading(true);
     setNetworkError("");
+    setLoadingMessage("Saving your profile...");
     try {
       // Ensure we have a fresh Clerk token so the API can verify the request
       const token = await getToken();
@@ -108,8 +110,15 @@ export default function OnboardingScreen() {
         injuries: store.injuries,
       });
 
-      // Generate the first workout plan
-      await generatePlan.mutateAsync();
+      // Profile saved — generate the workout plan (this calls OpenAI so it can take 20-30s)
+      setLoadingMessage("Generating your workout plan with AI...\nThis may take up to 30 seconds.");
+
+      try {
+        await generatePlan.mutateAsync();
+      } catch (planErr) {
+        // Plan generation failed but profile is saved — let user proceed anyway
+        console.error("Plan generation failed:", planErr);
+      }
 
       setOnboarded(true);
       store.reset();
@@ -132,6 +141,7 @@ export default function OnboardingScreen() {
       }
     } finally {
       setLoading(false);
+      setLoadingMessage("");
     }
   };
 
@@ -337,6 +347,9 @@ export default function OnboardingScreen() {
             )}
           </TouchableOpacity>
         </View>
+        {loadingMessage ? (
+          <Text className="text-dark-300 text-sm text-center mt-3 px-2">{loadingMessage}</Text>
+        ) : null}
         {networkError ? (
           <Text className="text-accent-red text-sm text-center mt-3 px-2">{networkError}</Text>
         ) : null}

@@ -9,10 +9,15 @@ import { useProgressSummary } from "@/api/hooks/useProgress";
 export default function HomeScreen() {
   const router = useRouter();
   const { data: profile, isLoading: profileLoading } = useProfile();
-  const { data: plan, isLoading: planLoading } = useCurrentPlan();
-  const { data: progress } = useProgressSummary();
 
-  if (profileLoading || planLoading) {
+  // Check onboarding FIRST — don't fetch plan/progress until we know the user is onboarded
+  const isOnboarded = profile?.onboardingComplete === true;
+
+  const { data: plan, isLoading: planLoading } = useCurrentPlan(isOnboarded);
+  const { data: progress } = useProgressSummary(isOnboarded);
+
+  // While profile is loading, show spinner
+  if (profileLoading) {
     return (
       <View className="flex-1 bg-dark-900 items-center justify-center">
         <ActivityIndicator size="large" color="#7c3aed" />
@@ -20,10 +25,19 @@ export default function HomeScreen() {
     );
   }
 
-  // Redirect to onboarding if not onboarded
-  if (!profile?.onboardingComplete) {
+  // Redirect to onboarding immediately if not onboarded
+  if (!isOnboarded) {
     router.replace("/(app)/onboarding");
     return null;
+  }
+
+  // Show spinner while plan loads (only after onboarding confirmed)
+  if (planLoading) {
+    return (
+      <View className="flex-1 bg-dark-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#7c3aed" />
+      </View>
+    );
   }
 
   // Determine today's workout

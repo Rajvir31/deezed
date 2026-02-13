@@ -3,13 +3,13 @@ import { apiClient } from "../client";
 import { useAuthStore } from "../../stores/auth";
 import type { ProgressSummary, CreateBodyMetric } from "@deezed/shared";
 
-export function useProgressSummary() {
+export function useProgressSummary(enabled = true) {
   const token = useAuthStore((s) => s.token);
 
   return useQuery({
     queryKey: ["progress", "summary"],
     queryFn: () => apiClient<ProgressSummary>("/progress/summary", { token }),
-    enabled: !!token,
+    enabled: !!token && enabled,
   });
 }
 

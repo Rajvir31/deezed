@@ -16,13 +16,13 @@ interface GeneratePlanResponse {
   explanation: string;
 }
 
-export function useCurrentPlan() {
+export function useCurrentPlan(enabled = true) {
   const token = useAuthStore((s) => s.token);
 
   return useQuery({
     queryKey: ["plan", "current"],
     queryFn: () => apiClient<PlanResponse>("/plan/current", { token }),
-    enabled: !!token,
+    enabled: !!token && enabled,
     retry: false,
   });
 }

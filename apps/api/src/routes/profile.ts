@@ -42,11 +42,7 @@ export async function profileRoutes(fastify: FastifyInstance) {
     const data = CreateProfileSchema.parse(request.body);
 
     // Get email from Clerk
-    const { createClerkClient } = await import("@clerk/fastify");
-    const clerk = createClerkClient({
-      secretKey: process.env.CLERK_SECRET_KEY!,
-      publishableKey: process.env.CLERK_PUBLISHABLE_KEY!,
-    });
+    const { clerk } = await import("../plugins/auth.js");
     const clerkUser = await clerk.users.getUser(request.clerkId);
     const email = clerkUser.emailAddresses[0]?.emailAddress || "";
 

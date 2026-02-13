@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { createClerkClient } from "@clerk/fastify";
+import { createClerkClient, verifyToken } from "@clerk/backend";
 import { prisma } from "../lib/prisma.js";
 
 declare module "fastify" {
@@ -9,7 +9,7 @@ declare module "fastify" {
   }
 }
 
-const clerk = createClerkClient({
+export const clerk = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY!,
   publishableKey: process.env.CLERK_PUBLISHABLE_KEY!,
 });
@@ -22,7 +22,9 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
     }
 
     const token = authHeader.slice(7);
-    const verifiedToken = await clerk.verifyToken(token);
+    const verifiedToken = await verifyToken(token, {
+      secretKey: process.env.CLERK_SECRET_KEY!,
+    });
 
     if (!verifiedToken || !verifiedToken.sub) {
       return reply.status(401).send({ error: "Invalid token" });
