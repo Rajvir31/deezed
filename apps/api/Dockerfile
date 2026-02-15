@@ -18,6 +18,11 @@ COPY apps/api/ ./apps/api/
 # Build shared package first (API depends on it)
 RUN npm run build --workspace=packages/shared
 
+# Fix ESM imports: add .js extensions to compiled shared output
+# (Source files have no .js extensions for Metro/Expo compatibility,
+#  but Node.js ESM requires them in the compiled JS output)
+RUN find packages/shared/dist -name "*.js" -exec sed -i -E 's#(from "\.[^"]*)"#\1.js"#g' {} +
+
 # Generate Prisma client + build API
 WORKDIR /app/apps/api
 RUN npx prisma generate
