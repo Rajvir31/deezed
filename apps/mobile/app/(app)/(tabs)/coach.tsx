@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useCoachChat } from "@/api/hooks/useCoach";
 import type { CoachMessage, CoachResponse } from "@deezed/shared";
+import { SwipeableTabs } from "@/components/SwipeableTabs";
 
 interface ChatEntry {
   role: "user" | "assistant";
@@ -77,6 +78,7 @@ export default function CoachScreen() {
   };
 
   return (
+    <SwipeableTabs>
     <SafeAreaView className="flex-1 bg-dark-900">
       <KeyboardAvoidingView
         className="flex-1"
@@ -238,5 +240,6 @@ export default function CoachScreen() {
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
+    </SwipeableTabs>
   );
 }

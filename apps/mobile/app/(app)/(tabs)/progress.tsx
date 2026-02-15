@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useProgressSummary, useLogMetric } from "@/api/hooks/useProgress";
 import { usePhotos } from "@/api/hooks/usePhysique";
 import { MUSCLE_GROUPS } from "@deezed/shared";
+import { SwipeableTabs } from "@/components/SwipeableTabs";
 
 export default function ProgressScreen() {
   const { data: progress, isLoading } = useProgressSummary();
@@ -49,6 +50,7 @@ export default function ProgressScreen() {
   const maxVolume = volumeEntries.length > 0 ? (volumeEntries[0][1] as number) : 1;
 
   return (
+    <SwipeableTabs>
     <SafeAreaView className="flex-1 bg-dark-900">
       <ScrollView className="flex-1 px-5 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
         <Text className="text-white text-2xl font-bold mb-6">Progress</Text>
@@ -196,5 +198,6 @@ export default function ProgressScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
+    </SwipeableTabs>
   );
 }

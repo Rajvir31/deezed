@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useProfile } from "@/api/hooks/useProfile";
 import { useCurrentPlan } from "@/api/hooks/usePlan";
 import { useProgressSummary } from "@/api/hooks/useProgress";
+import { SwipeableTabs } from "@/components/SwipeableTabs";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -56,6 +57,7 @@ export default function HomeScreen() {
   const todayWorkout = currentWeek?.days?.find((d) => d.dayNumber === dayOfWeek);
 
   return (
+    <SwipeableTabs>
     <SafeAreaView className="flex-1 bg-dark-900">
       <ScrollView className="flex-1 px-5 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Header */}
@@ -187,5 +189,6 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+    </SwipeableTabs>
   );
 }

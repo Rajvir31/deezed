@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCurrentPlan, useGeneratePlan } from "@/api/hooks/usePlan";
 import { useState } from "react";
+import { SwipeableTabs } from "@/components/SwipeableTabs";
 
 interface PlanDay {
   dayNumber: number;
@@ -66,6 +67,7 @@ export default function PlanScreen() {
   const currentWeek = weeks.find((w) => w.weekNumber === selectedWeek) || weeks[0];
 
   return (
+    <SwipeableTabs>
     <SafeAreaView className="flex-1 bg-dark-900">
       <ScrollView className="flex-1 px-5 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Header */}
@@ -184,5 +186,6 @@ export default function PlanScreen() {
         ))}
       </ScrollView>
     </SafeAreaView>
+    </SwipeableTabs>
   );
 }

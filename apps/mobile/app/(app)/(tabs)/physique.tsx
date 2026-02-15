@@ -21,6 +21,7 @@ import {
   type MuscleGroup,
   type PhysiqueAIOutput,
 } from "@deezed/shared";
+import { SwipeableTabs } from "@/components/SwipeableTabs";
 
 function formatLabel(s: string): string {
   return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -105,6 +106,7 @@ export default function PhysiqueScreen() {
   // Age Gate Check
   if (!profile?.isAgeVerified) {
     return (
+      <SwipeableTabs>
       <SafeAreaView className="flex-1 bg-dark-900">
         <ScrollView className="flex-1 px-5 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
           <Text className="text-white text-2xl font-bold mb-2">Physique Simulator</Text>
@@ -158,12 +160,14 @@ export default function PhysiqueScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+      </SwipeableTabs>
     );
   }
 
   // Consent screen
   if (showConsent) {
     return (
+      <SwipeableTabs>
       <SafeAreaView className="flex-1 bg-dark-900">
         <ScrollView className="flex-1 px-5 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
           <Text className="text-white text-2xl font-bold mb-6">Photo Privacy</Text>
@@ -218,10 +222,12 @@ export default function PhysiqueScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+      </SwipeableTabs>
     );
   }
 
   return (
+    <SwipeableTabs>
     <SafeAreaView className="flex-1 bg-dark-900">
       <ScrollView className="flex-1 px-5 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
         <Text className="text-white text-2xl font-bold mb-2">Physique Simulator</Text>
@@ -465,5 +471,6 @@ export default function PhysiqueScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
+    </SwipeableTabs>
   );
 }

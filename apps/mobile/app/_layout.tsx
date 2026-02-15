@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useAuthStore } from "@/stores/auth";
 // Workaround: native-stack's NativeStackView requires PreventRemoveContext (expo-router can mount Stack before provider is ready)
 import { PreventRemoveContext } from "@react-navigation/native";
@@ -62,13 +63,15 @@ const noopPreventRemoveContext = {
 
 export default function RootLayout() {
   return (
-    <PreventRemoveContext.Provider value={noopPreventRemoveContext}>
-      <ClerkProvider publishableKey={CLERK_KEY} tokenCache={tokenCache}>
-        <QueryClientProvider client={queryClient}>
-          <StatusBar style="light" />
-          <TokenSyncAndSlot />
-        </QueryClientProvider>
-      </ClerkProvider>
-    </PreventRemoveContext.Provider>
+    <SafeAreaProvider>
+      <PreventRemoveContext.Provider value={noopPreventRemoveContext}>
+        <ClerkProvider publishableKey={CLERK_KEY} tokenCache={tokenCache}>
+          <QueryClientProvider client={queryClient}>
+            <StatusBar style="light" />
+            <TokenSyncAndSlot />
+          </QueryClientProvider>
+        </ClerkProvider>
+      </PreventRemoveContext.Provider>
+    </SafeAreaProvider>
   );
 }
