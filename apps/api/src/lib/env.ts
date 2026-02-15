@@ -11,6 +11,7 @@ const envSchema = z.object({
   S3_SECRET_KEY: z.string().min(1),
   S3_BUCKET: z.string().default("deezed-photos"),
   S3_REGION: z.string().default("us-east-1"),
+  S3_FORCE_PATH_STYLE: z.coerce.boolean().optional(),
   API_HOST: z.string().default("0.0.0.0"),
   API_PORT: z.coerce.number().default(3001),
   RATE_LIMIT_AI_MAX: z.coerce.number().default(20),

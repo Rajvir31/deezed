@@ -63,7 +63,7 @@ export type WorkoutPlan = z.infer<typeof WorkoutPlanSchema>;
 export const SetLogSchema = z.object({
   id: z.string().uuid(),
   sessionId: z.string().uuid(),
-  exerciseId: z.string().uuid(),
+  exerciseId: z.string().min(1),
   setNumber: z.number().int().min(1),
   reps: z.number().int().min(0),
   weight: z.number().min(0),
@@ -74,7 +74,7 @@ export const SetLogSchema = z.object({
 export type SetLog = z.infer<typeof SetLogSchema>;
 
 export const CreateSetLogSchema = z.object({
-  exerciseId: z.string().uuid(),
+  exerciseId: z.string().min(1),
   setNumber: z.number().int().min(1),
   reps: z.number().int().min(0),
   weight: z.number().min(0),

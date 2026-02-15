@@ -1,0 +1,11 @@
+---
+description: Git commits must use the repo owner's identity, never Cursor/agent.
+globs: 
+alwaysApply: true
+---
+
+# Git commit author
+
+- When making git commits in this repo, **never** set the author to "Cursor", "Cursor Agent", or any AI/agent identity.
+- Use the repository's configured git user (run `git config user.name` and `git config user.email` in the repo). Do not pass `--author` unless it is to correct a commit to the repo owner's name and email.
+- Commits should be attributed to the human owner of the repo so they do not show up as a separate contributor.
