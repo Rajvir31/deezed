@@ -9,7 +9,7 @@
       "@deezed/shared": ["../../packages/shared/src"]
     }
   },
-  "include": ["src/**/*", "prisma/seed.ts"],
+  "include": ["src/**/*"],
   "references": [
     { "path": "../../packages/shared" }
   ]
