@@ -1,25 +1,28 @@
-# Deploying Deezed — Use from Anywhere with Expo Go
+# Deploying Deezed — Free Cloud Setup with Expo Go
 
-This guide gets your API running in the cloud so the mobile app works from any network via Expo Go.
+Everything here is free. No credit card required for Render or Neon.
 
 ---
 
-## What You Need (all free tiers)
+## Services You'll Need
 
-| Service | Purpose | Sign Up |
-|---------|---------|---------|
-| **Railway** | Hosts the API + Postgres | [railway.com](https://railway.com) |
-| **Cloudflare R2** | Photo storage (replaces MinIO) | [cloudflare.com](https://dash.cloudflare.com) |
-| **Clerk** | Auth (you already have this) | [clerk.com](https://clerk.com) |
-| **OpenAI** | AI features (you already have this) | [platform.openai.com](https://platform.openai.com) |
+| Service | Purpose | Cost | Sign Up |
+|---------|---------|------|---------|
+| **Render** | Hosts the API | Free (750 hrs/mo) | [render.com](https://render.com) |
+| **Neon** | Postgres database | Free (0.5 GB, never expires) | [neon.tech](https://neon.tech) |
+| **Cloudflare R2** | Photo storage | Free (10 GB) | [cloudflare.com](https://dash.cloudflare.com) |
+| **Clerk** | Auth (you already have this) | Free (10k users) | [clerk.com](https://clerk.com) |
+| **OpenAI** | AI features (you already have this) | ~$0.01/request | [platform.openai.com](https://platform.openai.com) |
 
-**Estimated cost**: ~$5/month (Railway), everything else is free tier.
+> **Note**: Render's free tier sleeps after 15 min of inactivity. First request after idle
+> takes ~30-60 seconds. After that it's fast. Perfectly fine for dev/personal use.
+> When you're ready for production, just switch to Render's paid plan ($7/mo) or Railway.
 
 ---
 
 ## Step 1: Push to GitHub
 
-Railway deploys from a GitHub repo. If you haven't already:
+Render deploys from GitHub. If you haven't already:
 
 ```bash
 git add .
@@ -29,64 +32,73 @@ git push origin main
 
 ---
 
-## Step 2: Set Up Cloudflare R2 (photo storage)
+## Step 2: Set Up Neon Postgres (free database)
+
+1. Go to [neon.tech](https://neon.tech) and sign up (GitHub login works)
+2. Click **Create Project** → name it `deezed`
+3. Pick a region close to you
+4. Once created, copy the **Connection string** — it looks like:
+   ```
+   postgresql://neondb_owner:abc123@ep-cool-name-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
+   ```
+5. Save this — it's your `DATABASE_URL`
+
+---
+
+## Step 3: Set Up Cloudflare R2 (free photo storage)
 
 1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → **R2 Object Storage**
 2. Click **Create bucket** → name it `deezed-photos`
 3. Go to **R2** → **Manage R2 API Tokens** → **Create API token**
    - Permissions: **Object Read & Write**
    - Specify bucket: `deezed-photos`
-4. Save these values — you'll need them:
-   - **Account ID** (in the R2 overview page URL or sidebar)
+4. Save these values:
+   - **Account ID** (visible in the sidebar or URL)
    - **Access Key ID**
    - **Secret Access Key**
-5. Your S3 endpoint will be: `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`
+5. Your S3 endpoint is: `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`
 
 ---
 
-## Step 3: Deploy API to Railway
+## Step 4: Deploy API to Render (free)
 
-### 3a. Create the project
+### 4a. Create the web service
 
-1. Go to [railway.com](https://railway.com) and sign in with GitHub
-2. Click **New Project** → **Deploy from GitHub repo** → select your `deezed` repo
-3. Railway will detect the `railway.json` and Dockerfile automatically
+1. Go to [render.com](https://render.com) and sign up with GitHub
+2. Click **New** → **Web Service**
+3. Connect your GitHub repo → select `deezed`
+4. Render will detect the `render.yaml` automatically
+   - If it asks manually:
+     - **Environment**: Docker
+     - **Dockerfile Path**: `./apps/api/Dockerfile`
+     - **Docker Context**: `.`
+     - **Plan**: Free
 
-### 3b. Add a Postgres database
+### 4b. Set environment variables
 
-1. In your Railway project, click **+ New** → **Database** → **PostgreSQL**
-2. Click on the Postgres service → **Variables** tab → copy the `DATABASE_URL`
+Go to your service → **Environment** tab → add these:
 
-### 3c. Set environment variables
+| Key | Value |
+|-----|-------|
+| `DATABASE_URL` | Your Neon connection string from Step 2 |
+| `CLERK_SECRET_KEY` | Your Clerk secret key |
+| `CLERK_PUBLISHABLE_KEY` | Your Clerk publishable key |
+| `OPENAI_API_KEY` | Your OpenAI API key |
+| `OPENAI_MODEL` | `gpt-4o` |
+| `S3_ENDPOINT` | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` |
+| `S3_ACCESS_KEY` | Your R2 Access Key ID |
+| `S3_SECRET_KEY` | Your R2 Secret Access Key |
+| `S3_BUCKET` | `deezed-photos` |
+| `S3_REGION` | `auto` |
+| `NODE_ENV` | `production` |
+| `API_HOST` | `0.0.0.0` |
+| `API_PORT` | `3001` |
 
-Click on your API service → **Variables** tab → **Raw Editor**, and paste:
+### 4c. Deploy
 
-```env
-DATABASE_URL=<paste the Railway Postgres URL from step 3b>
-CLERK_SECRET_KEY=<your Clerk secret key>
-CLERK_PUBLISHABLE_KEY=<your Clerk publishable key>
-OPENAI_API_KEY=<your OpenAI API key>
-OPENAI_MODEL=gpt-4o
-S3_ENDPOINT=https://<YOUR_CLOUDFLARE_ACCOUNT_ID>.r2.cloudflarestorage.com
-S3_ACCESS_KEY=<your R2 Access Key ID>
-S3_SECRET_KEY=<your R2 Secret Access Key>
-S3_BUCKET=deezed-photos
-S3_REGION=auto
-NODE_ENV=production
-API_HOST=0.0.0.0
-API_PORT=3001
-```
+Click **Manual Deploy** → **Deploy latest commit** (or it auto-deploys on push).
 
-### 3d. Expose the API publicly
-
-1. Click on your API service → **Settings** → **Networking**
-2. Click **Generate Domain** — you'll get something like `deezed-api-production.up.railway.app`
-3. Set the port to `3001`
-
-### 3e. Deploy
-
-Railway auto-deploys on push. You can also trigger a manual deploy from the dashboard.
-Check the deploy logs — you should see:
+Watch the logs — you should see:
 ```
 ==> Running database migrations...
 ==> Seeding exercise library...
@@ -94,77 +106,95 @@ Check the deploy logs — you should see:
 🚀 Deezed API running at http://0.0.0.0:3001
 ```
 
-### 3f. Verify
+### 4d. Get your URL
 
-Open your browser and go to:
+Render gives you a free URL like:
 ```
-https://your-app.up.railway.app/health
+https://deezed-api.onrender.com
 ```
+
+Verify it works by visiting: `https://deezed-api.onrender.com/health`
+
 You should see: `{"status":"ok","timestamp":"..."}`
 
 ---
 
-## Step 4: Point the Mobile App to Your Cloud API
+## Step 5: Point Mobile App to Cloud API
 
-Update your `.env` file locally:
+Update your local `.env` file:
 
 ```env
-EXPO_PUBLIC_API_URL=https://your-app.up.railway.app
+EXPO_PUBLIC_API_URL=https://deezed-api.onrender.com
 ```
-
-That's it! Now when you run the mobile app with Expo Go, it talks to the cloud API instead of localhost.
 
 ---
 
-## Step 5: Run the App with Expo Go
+## Step 6: Run the App
 
 ```bash
-# From the project root
 npm run dev:mobile
 ```
 
-Scan the QR code with Expo Go on your phone. The app now works from **any Wi-Fi or cellular network** because the API is in the cloud.
+Scan the QR code with Expo Go. The app now works from **any network** — Wi-Fi, cellular, anywhere.
 
 ---
 
-## What's Running Where (after deployment)
+## What's Running Where
 
 ```
 Your Phone (Expo Go)
   │
   │  HTTPS
   ▼
-Railway (cloud)
-  ├── Fastify API ───── Railway Postgres
-  │
-  └── Cloudflare R2 (photo storage)
-  
-  + Clerk (auth, already cloud)
-  + OpenAI (AI, already cloud)
+Render (free)
+  └── Fastify API
+        ├── Neon Postgres (free)
+        ├── Cloudflare R2 (free)
+        ├── Clerk Auth (free)
+        └── OpenAI API (pay-per-use)
 ```
 
-**You only run locally**: `npm run dev:mobile` (Expo dev server)
+**On your laptop**: Only `npm run dev:mobile` (Expo dev server)
+**In the cloud**: Everything else
 
-**Everything else is in the cloud**: API, database, storage, auth, AI.
+---
+
+## Upgrading Later
+
+When your app is ready for production, you just need to:
+
+1. **Render** → Switch to Starter plan ($7/mo) — no cold starts, always on
+2. **Neon** → Scale plan ($19/mo) — more storage, more compute
+3. Or migrate to **Railway** ($5/mo) — great alternative, always on
+
+No code changes needed. Just swap the plan and optionally update env vars.
 
 ---
 
 ## Troubleshooting
 
-### "Network request failed" on phone
-- Make sure `EXPO_PUBLIC_API_URL` is set to your Railway URL (with `https://`)
-- Restart the Expo dev server after changing env vars: `npm run dev:mobile`
+### First request is slow (~30-60 seconds)
+This is normal on Render's free tier. The service sleeps after 15 min of inactivity.
+Subsequent requests are fast.
 
-### Railway deploy fails
-- Check the deploy logs in the Railway dashboard
-- Make sure all required env vars are set (especially `DATABASE_URL`)
-- The `DATABASE_URL` from Railway Postgres should start with `postgresql://`
+### "Network request failed" on phone
+- Make sure `EXPO_PUBLIC_API_URL` is set to your Render URL (with `https://`)
+- Restart Expo after changing env vars: stop and re-run `npm run dev:mobile`
+
+### Render deploy fails
+- Check deploy logs in the Render dashboard
+- Make sure all env vars are set (especially `DATABASE_URL`)
+- The Neon `DATABASE_URL` must include `?sslmode=require` at the end
 
 ### Clerk auth not working
-- Make sure you're using the same Clerk app (same publishable key) in both the mobile `.env` and Railway env vars
-- The `CLERK_SECRET_KEY` in Railway must match the `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` used in the mobile app (same Clerk project)
+- Same Clerk project for both: `CLERK_SECRET_KEY` on Render must match
+  `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` in your mobile `.env`
 
 ### Photos not uploading
-- Verify your R2 bucket name matches `S3_BUCKET`
-- Check that R2 API token has read+write permissions
+- Verify R2 bucket name matches `S3_BUCKET`
+- R2 API token needs read+write permissions
 - `S3_REGION` should be `auto` for Cloudflare R2
+
+### Database errors
+- Neon connection strings need `?sslmode=require` — make sure it's there
+- If you see "relation does not exist", the migrations didn't run. Trigger a redeploy.
