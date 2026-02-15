@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MUSCLE_GROUPS, EQUIPMENT_OPTIONS, SPLIT_TYPES } from "../constants";
+import { MUSCLE_GROUPS, EQUIPMENT_OPTIONS, SPLIT_TYPES } from "../constants.js";
 
 // ── Exercise ─────────────────────────────────────────────
 export const ExerciseSchema = z.object({

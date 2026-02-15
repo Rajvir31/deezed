@@ -4,7 +4,7 @@ import {
   TRAINING_GOALS,
   EQUIPMENT_OPTIONS,
   MUSCLE_GROUPS,
-} from "../constants";
+} from "../constants.js";
 
 // ── Profile ──────────────────────────────────────────────
 export const UserProfileSchema = z.object({

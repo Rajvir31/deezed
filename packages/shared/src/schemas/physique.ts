@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PHYSIQUE_SCENARIOS, MUSCLE_GROUPS } from "../constants";
+import { PHYSIQUE_SCENARIOS, MUSCLE_GROUPS } from "../constants.js";
 
 // ── Physique Upload Request ──────────────────────────────
 export const PhysiqueUploadRequestSchema = z.object({
