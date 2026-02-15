@@ -1,4 +1,5 @@
 import { FastifyInstance } from "fastify";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { authenticate } from "../plugins/auth.js";
 import { PhysiqueUploadRequestSchema, PhysiqueAnalyzeRequestSchema } from "@deezed/shared";
@@ -121,7 +122,7 @@ export async function physiqueRoutes(fastify: FastifyInstance) {
           scenario: data.scenario,
           focusMuscle: data.focusMuscle,
         },
-        outputJson: result as unknown as Record<string, unknown>,
+        outputJson: result as unknown as Prisma.InputJsonValue,
       },
     });
 

@@ -1,4 +1,5 @@
 import { FastifyInstance } from "fastify";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { authenticate } from "../plugins/auth.js";
 import { GeneratePlanRequestSchema } from "@deezed/shared";
@@ -49,7 +50,7 @@ export async function planRoutes(fastify: FastifyInstance) {
         userId: request.userId,
         splitType: aiPlan.splitType,
         goal: input.goal,
-        weeks: aiPlan.weeks as unknown as Record<string, unknown>[],
+        weeks: aiPlan.weeks as unknown as Prisma.InputJsonValue,
         isActive: true,
       },
     });
@@ -59,8 +60,8 @@ export async function planRoutes(fastify: FastifyInstance) {
       data: {
         userId: request.userId,
         type: "plan",
-        inputRefs: input as unknown as Record<string, unknown>,
-        outputJson: aiPlan as unknown as Record<string, unknown>,
+        inputRefs: input as unknown as Prisma.InputJsonValue,
+        outputJson: aiPlan as unknown as Prisma.InputJsonValue,
       },
     });
 

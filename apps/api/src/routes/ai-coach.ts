@@ -1,4 +1,5 @@
 import { FastifyInstance } from "fastify";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { authenticate } from "../plugins/auth.js";
 import { CoachRequestSchema } from "@deezed/shared";
@@ -47,7 +48,7 @@ export async function aiCoachRoutes(fastify: FastifyInstance) {
           message: data.message,
           historyLength: data.conversationHistory.length,
         },
-        outputJson: response as unknown as Record<string, unknown>,
+        outputJson: response as unknown as Prisma.InputJsonValue,
       },
     });
 
