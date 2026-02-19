@@ -6,6 +6,7 @@ const envSchema = z.object({
   CLERK_PUBLISHABLE_KEY: z.string().min(1),
   OPENAI_API_KEY: z.string().min(1),
   OPENAI_MODEL: z.string().default("gpt-4o"),
+  REPLICATE_API_TOKEN: z.string().min(1),
   S3_ENDPOINT: z.string().url(),
   S3_ACCESS_KEY: z.string().min(1),
   S3_SECRET_KEY: z.string().min(1),

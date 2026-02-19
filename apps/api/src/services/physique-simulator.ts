@@ -1,3 +1,4 @@
+import Replicate from "replicate";
 import { callAI } from "./ai.js";
 import {
   PhysiqueAIOutputSchema,
@@ -10,76 +11,70 @@ import {
 import { createDownloadUrl } from "./storage.js";
 
 // ═══════════════════════════════════════════════════════════
-// MVP Mock Image Generator
-// ═══════════════════════════════════════════════════════════
-// This returns a placeholder image URL. In production, swap
-// this with a real image generation implementation.
-//
-// UPGRADE PATH:
-// 1. Create a new class implementing IImageGenerator
-//    (e.g., ReplicateImageGenerator, StabilityImageGenerator)
-// 2. Update the factory function below to return the new impl
-// 3. The rest of the system stays unchanged
+// FLUX Kontext Pro Image Generator via Replicate
 // ═══════════════════════════════════════════════════════════
 
-export class MockImageGenerator implements IImageGenerator {
-  async generate(_input: IImageGeneratorInput): Promise<IImageGeneratorOutput> {
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+export class FluxKontextImageGenerator implements IImageGenerator {
+  private replicate: Replicate;
+
+  constructor(apiToken: string) {
+    this.replicate = new Replicate({ auth: apiToken });
+  }
+
+  async generate(input: IImageGeneratorInput): Promise<IImageGeneratorOutput> {
+    const start = Date.now();
+
+    const prompt = this.buildPrompt(input);
+
+    const output = await this.replicate.run("black-forest-labs/flux-kontext-pro", {
+      input: {
+        prompt,
+        input_image: input.sourceImageUrl,
+        output_format: "jpg",
+        aspect_ratio: "3:4",
+      },
+    });
+
+    const imageUrl = typeof output === "string"
+      ? output
+      : (output as any)?.url?.() ?? (output as any)?.[0] ?? String(output);
 
     return {
-      imageUrl: "https://placehold.co/400x600/1a1a2e/e94560?text=DEEZED+PREVIEW%0A%0APhysique+Simulation%0A(Coming+Soon)&font=montserrat",
+      imageUrl,
       metadata: {
-        model: "mock-v1",
-        processingTimeMs: 1500,
-        isMock: true,
+        model: "flux-kontext-pro",
+        processingTimeMs: Date.now() - start,
+        isMock: false,
       },
     };
   }
+
+  private buildPrompt(input: IImageGeneratorInput): string {
+    const scenarioDesc = input.scenario === "3_month_lock_in"
+      ? "after 3 months of dedicated strength training and clean nutrition"
+      : `with significantly more developed ${input.focusMuscle ?? "muscles"}`;
+
+    const goalHint = input.userProfile.goal === "muscle_gain"
+      ? "more muscular with visible hypertrophy"
+      : input.userProfile.goal === "fat_loss"
+        ? "leaner with more visible muscle definition and less body fat"
+        : "more athletic and toned with improved muscle definition";
+
+    return [
+      `Show this exact same person ${scenarioDesc}.`,
+      `Make them look ${goalHint}.`,
+      "Keep the same face, identity, skin tone, hair, pose, clothing, and background.",
+      "The transformation should look realistic and achievable — natural lighting, real skin texture, no artificial glow or cartoon effects.",
+      input.focusMuscle
+        ? `Emphasize visible growth in the ${input.focusMuscle} area specifically.`
+        : "Show balanced overall muscle development.",
+      "Do NOT change the person's face or identity in any way.",
+    ].join(" ");
+  }
 }
 
-// ═══════════════════════════════════════════════════════════
-// Example: Replicate-based generator (uncomment to use)
-// ═══════════════════════════════════════════════════════════
-// export class ReplicateImageGenerator implements IImageGenerator {
-//   private replicate: Replicate;
-//
-//   constructor(apiToken: string) {
-//     this.replicate = new Replicate({ auth: apiToken });
-//   }
-//
-//   async generate(input: IImageGeneratorInput): Promise<IImageGeneratorOutput> {
-//     const start = Date.now();
-//     const output = await this.replicate.run(
-//       "stability-ai/sdxl:...",
-//       {
-//         input: {
-//           image: input.sourceImageUrl,
-//           prompt: `fitness transformation, ${input.scenario}, muscular physique, ${input.focusMuscle || "balanced"}`,
-//           negative_prompt: "nsfw, explicit, inappropriate",
-//           strength: 0.5,
-//         },
-//       },
-//     );
-//     return {
-//       imageUrl: output[0] as string,
-//       metadata: {
-//         model: "sdxl-replicate",
-//         processingTimeMs: Date.now() - start,
-//         isMock: false,
-//       },
-//     };
-//   }
-// }
-
-// ── Factory ──────────────────────────────────────────────
-// Change this to return a different implementation when upgrading
 export function createImageGenerator(): IImageGenerator {
-  // MVP: Use mock generator
-  return new MockImageGenerator();
-
-  // Production: uncomment and configure
-  // return new ReplicateImageGenerator(process.env.REPLICATE_API_TOKEN!);
+  return new FluxKontextImageGenerator(process.env.REPLICATE_API_TOKEN!);
 }
 
 // ── Physique Analysis Prompt ─────────────────────────────
