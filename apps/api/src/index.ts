@@ -5,7 +5,6 @@ import { loadEnv } from "./lib/env.js";
 import { prisma } from "./lib/prisma.js";
 import { initStorage } from "./services/storage.js";
 import { initOpenAI } from "./services/ai.js";
-import { registerClerkAuth } from "./plugins/auth.js";
 import { profileRoutes } from "./routes/profile.js";
 import { planRoutes } from "./routes/plan.js";
 import { workoutRoutes } from "./routes/workout.js";
@@ -48,9 +47,6 @@ async function main() {
   // ── Request Decorators ───────────────────────────────────
   fastify.decorateRequest("userId", "");
   fastify.decorateRequest("clerkId", "");
-
-  // ── Clerk Auth Plugin ───────────────────────────────
-  await registerClerkAuth(fastify);
 
   // ── Initialize Services ──────────────────────────────
   initStorage();

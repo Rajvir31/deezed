@@ -124,7 +124,11 @@ export default function OnboardingScreen() {
       store.reset();
       router.replace("/(app)/(tabs)");
     } catch (err) {
-      console.error("Onboarding error:", err);
+      const apiData = (err as any)?.data;
+      const detail = apiData?.detail || "";
+      const status = (err as any)?.status || "?";
+      console.error("Onboarding error:", err, "status:", status, "detail:", detail, "data:", JSON.stringify(apiData));
+
       const isNetworkError =
         err instanceof TypeError && (err.message === "Network request failed" || err.message?.includes("Network"));
       const isAuthError = err instanceof Error && err.message === "Authentication failed";
@@ -134,7 +138,7 @@ export default function OnboardingScreen() {
         );
       } else if (isAuthError) {
         setNetworkError(
-          "Authentication failed. Make sure CLERK_SECRET_KEY and CLERK_PUBLISHABLE_KEY in apps/api/.env match your Clerk app. Then try signing out and back in."
+          `Auth failed (${status}): ${detail || "token rejected by server"}. Check CLERK_SECRET_KEY on Render matches your Clerk app. Try signing out and back in.`
         );
       } else {
         setNetworkError(err instanceof Error ? err.message : "Something went wrong. Try again.");
