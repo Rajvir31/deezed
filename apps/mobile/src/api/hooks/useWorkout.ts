@@ -23,25 +23,28 @@ interface WorkoutSession {
 }
 
 export function useStartWorkout() {
-  const token = useAuthStore((s) => s.token);
-
   return useMutation({
     mutationFn: (data: { planId: string; weekNumber: number; dayNumber: number }) =>
-      apiClient<WorkoutSession>("/workout/start", { method: "POST", body: data, token }),
+      apiClient<WorkoutSession>("/workout/start", {
+        method: "POST",
+        body: data,
+        token: useAuthStore.getState().token,
+      }),
   });
 }
 
 export function useLogSet() {
-  const token = useAuthStore((s) => s.token);
-
   return useMutation({
     mutationFn: (data: CreateSetLog & { sessionId: string }) =>
-      apiClient("/workout/log-set", { method: "POST", body: data, token }),
+      apiClient("/workout/log-set", {
+        method: "POST",
+        body: data,
+        token: useAuthStore.getState().token,
+      }),
   });
 }
 
 export function useFinishWorkout() {
-  const token = useAuthStore((s) => s.token);
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -49,7 +52,7 @@ export function useFinishWorkout() {
       apiClient<WorkoutSession>("/workout/finish", {
         method: "POST",
         body: { sessionId },
-        token,
+        token: useAuthStore.getState().token,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workout"] });

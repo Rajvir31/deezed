@@ -15,12 +15,15 @@ export function useProfile() {
 }
 
 export function useUpdateProfile() {
-  const token = useAuthStore((s) => s.token);
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (data: CreateProfile | UpdateProfile) =>
-      apiClient<UserProfile>("/profile", { method: "PUT", body: data, token }),
+      apiClient<UserProfile>("/profile", {
+        method: "PUT",
+        body: data,
+        token: useAuthStore.getState().token,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
@@ -28,7 +31,6 @@ export function useUpdateProfile() {
 }
 
 export function useVerifyAge() {
-  const token = useAuthStore((s) => s.token);
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -36,7 +38,7 @@ export function useVerifyAge() {
       apiClient<{ verified: boolean; age: number }>("/profile/verify-age", {
         method: "POST",
         body: data,
-        token,
+        token: useAuthStore.getState().token,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });

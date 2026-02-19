@@ -28,7 +28,6 @@ export function useCurrentPlan(enabled = true) {
 }
 
 export function useGeneratePlan() {
-  const token = useAuthStore((s) => s.token);
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -42,7 +41,7 @@ export function useGeneratePlan() {
       apiClient<GeneratePlanResponse>("/plan/generate", {
         method: "POST",
         body: data || {},
-        token,
+        token: useAuthStore.getState().token,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["plan"] });

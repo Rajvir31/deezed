@@ -4,21 +4,17 @@ import { useAuthStore } from "../../stores/auth";
 import type { PhysiqueUploadResponse, PhysiqueAIOutput, PhysiqueScenario, MuscleGroup } from "@deezed/shared";
 
 export function usePhysiqueUploadUrl() {
-  const token = useAuthStore((s) => s.token);
-
   return useMutation({
     mutationFn: (data: { fileName: string; contentType: string }) =>
       apiClient<PhysiqueUploadResponse>("/physique/upload-url", {
         method: "POST",
         body: data,
-        token,
+        token: useAuthStore.getState().token,
       }),
   });
 }
 
 export function usePhysiqueAnalyze() {
-  const token = useAuthStore((s) => s.token);
-
   return useMutation({
     mutationFn: (data: {
       photoStorageKey: string;
@@ -28,7 +24,7 @@ export function usePhysiqueAnalyze() {
       apiClient<PhysiqueAIOutput>("/physique/analyze-and-simulate", {
         method: "POST",
         body: data,
-        token,
+        token: useAuthStore.getState().token,
       }),
   });
 }
@@ -49,12 +45,14 @@ export function usePhotos(type?: string) {
 }
 
 export function useDeletePhoto() {
-  const token = useAuthStore((s) => s.token);
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (photoId: string) =>
-      apiClient(`/photos/${photoId}`, { method: "DELETE", token }),
+      apiClient(`/photos/${photoId}`, {
+        method: "DELETE",
+        token: useAuthStore.getState().token,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["photos"] });
     },
@@ -62,11 +60,14 @@ export function useDeletePhoto() {
 }
 
 export function useDeleteAllPhotos() {
-  const token = useAuthStore((s) => s.token);
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => apiClient("/photos", { method: "DELETE", token }),
+    mutationFn: () =>
+      apiClient("/photos", {
+        method: "DELETE",
+        token: useAuthStore.getState().token,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["photos"] });
     },

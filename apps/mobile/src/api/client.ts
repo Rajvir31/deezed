@@ -1,6 +1,9 @@
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3001";
 const API_URL = API_BASE_URL;
 
+// Render free tier can take up to 2 minutes to wake from sleep
+const REQUEST_TIMEOUT_MS = 120_000;
+
 type RequestOptions = {
   method?: string;
   body?: unknown;
@@ -33,22 +36,36 @@ export async function apiClient<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : {};
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    throw new ApiError(
-      data.error || "Request failed",
-      response.status,
-      data,
-    );
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
+
+    if (!response.ok) {
+      throw new ApiError(
+        data.error || "Request failed",
+        response.status,
+        data,
+      );
+    }
+
+    return data as T;
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    if (controller.signal.aborted) {
+      throw new Error("Request timed out — the server may be waking up. Please try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return data as T;
 }

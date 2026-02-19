@@ -14,12 +14,15 @@ export function useProgressSummary(enabled = true) {
 }
 
 export function useLogMetric() {
-  const token = useAuthStore((s) => s.token);
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (data: CreateBodyMetric) =>
-      apiClient("/progress/metric", { method: "POST", body: data, token }),
+      apiClient("/progress/metric", {
+        method: "POST",
+        body: data,
+        token: useAuthStore.getState().token,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["progress"] });
     },
