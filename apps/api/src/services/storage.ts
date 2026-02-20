@@ -15,7 +15,7 @@ export function initStorage() {
   const endpoint = process.env.S3_ENDPOINT!;
   const forcePathStyle = process.env.S3_FORCE_PATH_STYLE !== undefined
     ? process.env.S3_FORCE_PATH_STYLE === "true"
-    : endpoint.includes("localhost") || endpoint.includes("127.0.0.1");
+    : endpoint.includes("localhost") || endpoint.includes("127.0.0.1") || endpoint.includes("r2.cloudflarestorage.com");
 
   s3Client = new S3Client({
     endpoint,

@@ -71,11 +71,15 @@ export default function PhysiqueScreen() {
         const response = await fetch(asset.uri);
         const blob = await response.blob();
 
-        await fetch(uploadInfo.uploadUrl, {
+        const uploadRes = await fetch(uploadInfo.uploadUrl, {
           method: "PUT",
           headers: { "Content-Type": "image/jpeg" },
           body: blob,
         });
+
+        if (!uploadRes.ok) {
+          throw new Error(`Upload to storage failed (${uploadRes.status})`);
+        }
 
         setStorageKey(uploadInfo.storageKey);
         setStep("configure");
