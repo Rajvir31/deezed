@@ -26,7 +26,15 @@ export async function apiClient<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { method = "GET", body, token } = options;
+  const { method = "GET", body } = options;
+  let { token } = options;
+
+  // Always try to get a fresh token if one was requested
+  if (token !== undefined) {
+    const { getFreshToken } = await import("../stores/auth");
+    const fresh = await getFreshToken();
+    if (fresh) token = fresh;
+  }
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",

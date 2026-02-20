@@ -25,7 +25,12 @@ const TOKEN_REFRESH_INTERVAL_MS = 20_000;
 function TokenSyncAndSlot() {
   const { isSignedIn, getToken } = useAuth();
   const setToken = useAuthStore((s) => s.setToken);
+  const setGetTokenFn = useAuthStore((s) => s.setGetTokenFn);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    setGetTokenFn(getToken);
+  }, [getToken, setGetTokenFn]);
 
   const syncToken = useCallback(async () => {
     if (isSignedIn) {
@@ -37,10 +42,8 @@ function TokenSyncAndSlot() {
   }, [isSignedIn, getToken, setToken]);
 
   useEffect(() => {
-    // Sync immediately
     syncToken();
 
-    // Refresh periodically while signed in
     if (isSignedIn) {
       intervalRef.current = setInterval(syncToken, TOKEN_REFRESH_INTERVAL_MS);
     }
