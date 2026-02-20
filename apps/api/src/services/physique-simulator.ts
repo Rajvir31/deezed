@@ -31,7 +31,6 @@ export class FluxKontextImageGenerator implements IImageGenerator {
       input: {
         prompt,
         input_image: input.sourceImageUrl,
-        prompt_upsampling: true,
         output_format: "png",
         aspect_ratio: "match_input_image",
       },
@@ -61,63 +60,43 @@ export class FluxKontextImageGenerator implements IImageGenerator {
 
   private buildPrompt(input: IImageGeneratorInput): string {
     const va = input.visionAnalysis;
+    const goal = input.userProfile.goal;
+    const level = input.userProfile.experienceLevel;
 
-    const goalHint = input.userProfile.goal === "hypertrophy"
-      ? "more muscular with visible hypertrophy, fuller muscle bellies, and rounder muscle shapes"
-      : input.userProfile.goal === "cut"
-        ? "leaner with sharply visible muscle definition, increased vascularity, and noticeably less body fat"
-        : input.userProfile.goal === "strength"
-          ? "denser and more powerful-looking with thicker muscles, a wider frame, and a stronger build"
-          : "more athletic and toned with improved overall muscle definition";
+    // Build the core body-change instruction from vision analysis
+    const changeDesc = this.buildChangeDescription(goal, level, va, input.focusMuscle);
 
-    const experienceMultiplier = input.userProfile.experienceLevel === "beginner"
-      ? "significant and noticeable"
-      : input.userProfile.experienceLevel === "intermediate"
-        ? "moderate but clearly visible"
-        : "subtle but meaningful";
-
-    if (va) {
-      const scenarioBlock = input.scenario === "3_month_lock_in"
-        ? [
-            `This person currently has approximately ${va.bodyFatRange} body fat with a ${va.buildType} build.`,
-            `Their current muscle development: ${va.muscleDevelopment}.`,
-            `Transform this person to show the realistic best-case results of 3 months of 100% dedicated strength training and strict clean nutrition.`,
-            `Apply ${experienceMultiplier} changes for a ${input.userProfile.experienceLevel} lifter:`,
-            va.realisticChanges,
-          ].join(" ")
-        : [
-            `This person currently has a ${va.buildType} build with ${va.muscleDevelopment}.`,
-            `Show this person with significantly more developed ${input.focusMuscle ?? "muscles"} after focused training.`,
-            `Emphasize clear, visible growth in the ${input.focusMuscle ?? "target"} area while keeping other areas the same.`,
-          ].join(" ");
-
-      return [
-        scenarioBlock,
-        `Make them look ${goalHint}.`,
-        "Keep the exact same person — same face, same identity, same skin tone, same hair, same pose, same clothing, same background.",
-        "The result must look like a real high-quality photograph: natural lighting, real skin texture with pores and natural imperfections, realistic shadows, no airbrushed skin, no HDR glow, no artificial sheen, no cartoon or CGI artifacts.",
-        input.focusMuscle
-          ? `Emphasize visible growth specifically in the ${input.focusMuscle}.`
-          : "Show balanced overall muscle development across all visible muscle groups.",
-        "Do NOT alter the person's face, facial expression, or identity in any way.",
-      ].join(" ");
+    if (input.scenario === "3_month_lock_in") {
+      return `${changeDesc} while maintaining the same face, expression, pose, clothing, and background.`;
     }
 
-    // Fallback when vision analysis is unavailable
-    const scenarioDesc = input.scenario === "3_month_lock_in"
-      ? `after 3 months of dedicated strength training and clean nutrition with ${experienceMultiplier} improvement`
-      : `with significantly more developed ${input.focusMuscle ?? "muscles"}`;
+    return `Make the ${input.focusMuscle ?? "muscles"} noticeably bigger and more developed. ${changeDesc} while maintaining the same face, expression, pose, clothing, and background.`;
+  }
 
-    return [
-      `Show this exact same person ${scenarioDesc}.`,
-      `Make them look ${goalHint}.`,
-      "Keep the exact same person — same face, same identity, same skin tone, same hair, same pose, same clothing, same background.",
-      "The result must look like a real high-quality photograph: natural lighting, real skin texture with pores and natural imperfections, realistic shadows, no airbrushed skin, no HDR glow, no artificial sheen, no cartoon or CGI artifacts.",
-      input.focusMuscle
-        ? `Emphasize visible growth in the ${input.focusMuscle} area specifically.`
-        : "Show balanced overall muscle development.",
-      "Do NOT alter the person's face, facial expression, or identity in any way.",
-    ].join(" ");
+  private buildChangeDescription(
+    goal: string,
+    level: string,
+    va: PhysiqueVisionAnalysis | undefined,
+    focusMuscle?: string,
+  ): string {
+    const intensity = level === "beginner" ? "noticeably"
+      : level === "intermediate" ? "visibly" : "subtly";
+
+    // Use vision data to target specific areas if available
+    const areas = va
+      ? va.keyOpportunities.slice(0, 3).join(", ")
+      : "chest, shoulders, and arms";
+
+    if (goal === "hypertrophy") {
+      return `Make this person ${intensity} more muscular with bigger ${areas} and fuller muscle shape`;
+    }
+    if (goal === "cut") {
+      return `Make this person ${intensity} leaner with more visible muscle definition, tighter midsection, and visible abs${focusMuscle ? "" : ". Keep the same muscle size but reduce body fat"}`;
+    }
+    if (goal === "strength") {
+      return `Make this person look ${intensity} thicker and more powerful with broader shoulders, thicker ${areas}, and a more solid build`;
+    }
+    return `Make this person look ${intensity} more athletic and toned with improved definition in the ${areas}`;
   }
 }
 
