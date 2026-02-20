@@ -50,7 +50,7 @@ export default function PhysiqueScreen() {
     }
 
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [3, 4],
       quality: 0.8,
@@ -80,8 +80,9 @@ export default function PhysiqueScreen() {
         setStorageKey(uploadInfo.storageKey);
         setStep("configure");
       } catch (err) {
-        console.error("Upload failed:", err);
-        Alert.alert("Upload Failed", "Please try again.");
+        const detail = (err as any)?.data?.detail || (err as any)?.message || "Unknown error";
+        console.error("Upload failed:", err, "detail:", detail);
+        Alert.alert("Upload Failed", detail);
       }
     }
   };
@@ -98,8 +99,9 @@ export default function PhysiqueScreen() {
       setResult(res);
       setStep("result");
     } catch (err) {
-      console.error("Analysis failed:", err);
-      Alert.alert("Analysis Failed", "Please try again.");
+      const detail = (err as any)?.data?.detail || (err as any)?.message || "Unknown error";
+      console.error("Analysis failed:", err, "detail:", detail);
+      Alert.alert("Analysis Failed", detail);
     }
   };
 

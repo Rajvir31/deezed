@@ -98,19 +98,26 @@ export async function physiqueRoutes(fastify: FastifyInstance) {
     });
 
     // Run analysis
-    const result = await analyzeAndSimulate({
-      photoStorageKey: data.photoStorageKey,
-      scenario: data.scenario,
-      focusMuscle: data.focusMuscle,
-      userProfile: {
-        experienceLevel: profile.experienceLevel,
-        goal: profile.goal,
-        daysPerWeek: profile.daysPerWeek,
-        equipment: profile.equipment,
-        injuries: profile.injuries,
-        weight: latestMetric?.weight ?? undefined,
-      },
-    });
+    let result;
+    try {
+      result = await analyzeAndSimulate({
+        photoStorageKey: data.photoStorageKey,
+        scenario: data.scenario,
+        focusMuscle: data.focusMuscle,
+        userProfile: {
+          experienceLevel: profile.experienceLevel,
+          goal: profile.goal,
+          daysPerWeek: profile.daysPerWeek,
+          equipment: profile.equipment,
+          injuries: profile.injuries,
+          weight: latestMetric?.weight ?? undefined,
+        },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      request.log.error(err, "Physique analysis failed: %s", msg);
+      return reply.status(500).send({ error: "Analysis failed", detail: msg });
+    }
 
     // Persist AI result
     await prisma.aIResult.create({
