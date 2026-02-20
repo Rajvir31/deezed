@@ -70,7 +70,7 @@ export class FluxKontextImageGenerator implements IImageGenerator {
       return `${changeDesc} while maintaining the same face, expression, pose, clothing, and background.`;
     }
 
-    return `Make the ${input.focusMuscle ?? "muscles"} noticeably bigger and more developed. ${changeDesc} while maintaining the same face, expression, pose, clothing, and background.`;
+    return `Make the ${input.focusMuscle ?? "muscles"} slightly bigger and more defined. ${changeDesc} while maintaining the same face, expression, pose, clothing, and background.`;
   }
 
   private buildChangeDescription(
@@ -79,24 +79,22 @@ export class FluxKontextImageGenerator implements IImageGenerator {
     va: PhysiqueVisionAnalysis | undefined,
     focusMuscle?: string,
   ): string {
-    const intensity = level === "beginner" ? "noticeably"
-      : level === "intermediate" ? "visibly" : "subtly";
+    const intensity = level === "advanced" ? "subtly" : "slightly";
 
-    // Use vision data to target specific areas if available
     const areas = va
       ? va.keyOpportunities.slice(0, 3).join(", ")
       : "chest, shoulders, and arms";
 
     if (goal === "hypertrophy") {
-      return `Make this person ${intensity} more muscular with bigger ${areas} and fuller muscle shape`;
+      return `Make this person ${intensity} more muscular with a bit more size in the ${areas}`;
     }
     if (goal === "cut") {
-      return `Make this person ${intensity} leaner with more visible muscle definition, tighter midsection, and visible abs${focusMuscle ? "" : ". Keep the same muscle size but reduce body fat"}`;
+      return `Make this person ${intensity} leaner with a bit more muscle definition and a tighter midsection${focusMuscle ? "" : ". Keep muscle size the same but reduce body fat slightly"}`;
     }
     if (goal === "strength") {
-      return `Make this person look ${intensity} thicker and more powerful with broader shoulders, thicker ${areas}, and a more solid build`;
+      return `Make this person look ${intensity} thicker and more solid, especially in the ${areas}`;
     }
-    return `Make this person look ${intensity} more athletic and toned with improved definition in the ${areas}`;
+    return `Make this person look ${intensity} more athletic and toned with a bit more definition in the ${areas}`;
   }
 }
 

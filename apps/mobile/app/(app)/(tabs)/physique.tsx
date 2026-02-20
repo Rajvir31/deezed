@@ -51,9 +51,8 @@ export default function PhysiqueScreen() {
 
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [3, 4],
-      quality: 0.8,
+      allowsEditing: false,
+      quality: 0.9,
     });
 
     if (!pickerResult.canceled && pickerResult.assets[0]) {
