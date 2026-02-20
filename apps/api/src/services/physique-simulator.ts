@@ -35,17 +35,16 @@ export class FluxKontextImageGenerator implements IImageGenerator {
       },
     });
 
+    const raw = output as any;
     let imageUrl: string;
-    if (typeof output === "string") {
-      imageUrl = output;
-    } else if (output && typeof (output as any).url === "string") {
-      imageUrl = (output as any).url;
-    } else if (output && typeof (output as any).url === "function") {
-      imageUrl = (output as any).url();
-    } else if (output && typeof (output as any).toString === "function") {
-      imageUrl = (output as any).toString();
+    if (typeof raw === "string") {
+      imageUrl = raw;
+    } else if (raw?.url?.href) {
+      imageUrl = raw.url.href;
+    } else if (typeof raw?.url === "string") {
+      imageUrl = raw.url;
     } else {
-      imageUrl = String(output);
+      imageUrl = String(raw);
     }
 
     return {
