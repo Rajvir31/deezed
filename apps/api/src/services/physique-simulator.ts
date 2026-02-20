@@ -1,4 +1,5 @@
 import Replicate from "replicate";
+import sharp from "sharp";
 import { callAI, callAIVision } from "./ai.js";
 import {
   PhysiqueAIOutputSchema,
@@ -9,7 +10,7 @@ import {
   type IImageGeneratorOutput,
   FITNESS_DISCLAIMERS,
 } from "@deezed/shared";
-import { createDownloadUrl } from "./storage.js";
+import { createDownloadUrl, uploadBuffer } from "./storage.js";
 
 // ═══════════════════════════════════════════════════════════
 // FLUX Kontext Pro Image Generator via Replicate
@@ -33,7 +34,7 @@ export class FluxKontextImageGenerator implements IImageGenerator {
         input: {
           prompt,
           input_image: input.sourceImageUrl,
-          safety_tolerance: 2,
+          safety_tolerance: 5,
           output_format: "png",
           aspect_ratio: "match_input_image",
         },
@@ -70,40 +71,53 @@ export class FluxKontextImageGenerator implements IImageGenerator {
     };
   }
 
+  private buildIdentityLock(va?: PhysiqueVisionAnalysis): string {
+    const facialHairDesc =
+      va?.facialHair && va.facialHair !== "not visible"
+        ? `This person's facial hair is: ${va.facialHair}. Keep their facial hair exactly the same.`
+        : "Preserve the person's exact facial hair (or lack thereof).";
+
+    return (
+      `${facialHairDesc} ` +
+      "Keep the exact same hairstyle, hair color, skin tone, tattoos, scars, face, expression, pose, clothing, and background. " +
+      "The ONLY change should be to body musculature and body fat."
+    );
+  }
+
   private buildPrompt(input: IImageGeneratorInput): string {
     const changeDesc = this.buildChangeDescription(input);
+    const lock = this.buildIdentityLock(input.visionAnalysis);
 
     if (input.scenario === "3_month_lock_in") {
-      return `${changeDesc} while maintaining the same face, expression, pose, clothing, and background.`;
+      return `${changeDesc}. ${lock}`;
     }
 
-    return `Make the ${input.focusMuscle ?? "muscles"} bigger and more defined. ${changeDesc} while maintaining the same face, expression, pose, clothing, and background.`;
+    return `Make the ${input.focusMuscle ?? "muscles"} bigger and more defined. ${changeDesc}. ${lock}`;
   }
 
   private buildChangeDescription(input: IImageGeneratorInput): string {
     const { goal, experienceLevel, daysPerWeek, equipment } = input.userProfile;
     const va = input.visionAnalysis;
 
-    // Scale transformation intensity based on experience + training frequency
     const intensity = this.getIntensity(experienceLevel, daysPerWeek);
-
-    // Pick physique style based on equipment access
     const physiqueStyle = this.getPhysiqueStyle(equipment);
 
     const areas = va
       ? va.keyOpportunities.slice(0, 3).join(", ")
       : "chest, shoulders, and arms";
 
+    const onlyBody = "Only modify the body and physique, nothing else.";
+
     if (goal === "hypertrophy") {
-      return `Make this person ${intensity} more muscular with more size in the ${areas} and a ${physiqueStyle} look`;
+      return `Make this person's body ${intensity} more muscular with more size in the ${areas} and a ${physiqueStyle} look. ${onlyBody}`;
     }
     if (goal === "cut") {
-      return `Make this person ${intensity} leaner with more visible muscle definition, a tighter midsection, and less body fat with a ${physiqueStyle} look`;
+      return `Make this person's body ${intensity} leaner with more visible muscle definition, a tighter midsection, and less body fat with a ${physiqueStyle} look. ${onlyBody}`;
     }
     if (goal === "strength") {
-      return `Make this person look ${intensity} thicker and more solid with more mass in the ${areas} and a ${physiqueStyle} build`;
+      return `Make this person's body look ${intensity} thicker and more solid with more mass in the ${areas} and a ${physiqueStyle} build. ${onlyBody}`;
     }
-    return `Make this person look ${intensity} more athletic and toned with more definition in the ${areas} and a ${physiqueStyle} look`;
+    return `Make this person's body look ${intensity} more athletic and toned with more definition in the ${areas} and a ${physiqueStyle} look. ${onlyBody}`;
   }
 
   private getIntensity(level: string, daysPerWeek: number): string {
@@ -129,6 +143,82 @@ export function createImageGenerator(): IImageGenerator {
 }
 
 // ═══════════════════════════════════════════════════════════
+// Face-Preservation Composite (raw pixel blending)
+// Reads both images pixel-by-pixel: everything above the
+// chin is 100 % original pixels, then a short gradient
+// blends into the FLUX-generated body below.
+// ═══════════════════════════════════════════════════════════
+
+async function fetchImageBuffer(url: string): Promise<Buffer> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch image: ${res.status}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+async function compositePreserveFace(
+  originalUrl: string,
+  generatedUrl: string,
+  faceEndPercent: number,
+): Promise<Buffer> {
+  const [origBuf, genBuf] = await Promise.all([
+    fetchImageBuffer(originalUrl),
+    fetchImageBuffer(generatedUrl),
+  ]);
+
+  const origMeta = await sharp(origBuf).metadata();
+  const width = origMeta.width!;
+  const height = origMeta.height!;
+
+  // Clamp faceEndPercent to a sane range (fallback to 30 % if GPT returned junk)
+  const pct = faceEndPercent >= 5 && faceEndPercent <= 70 ? faceEndPercent : 30;
+
+  // Decode both images to raw RGBA at identical dimensions
+  const [origRaw, genRaw] = await Promise.all([
+    sharp(origBuf).resize(width, height).ensureAlpha().raw().toBuffer(),
+    sharp(genBuf).resize(width, height).ensureAlpha().raw().toBuffer(),
+  ]);
+
+  const chinPx = Math.round((pct / 100) * height);
+  // Keep original solid for 5 % of the image below the chin (safety margin)
+  const solidEnd = Math.min(height, chinPx + Math.round(height * 0.05));
+  // Then blend over a 6 % zone into the generated body
+  const fadeEnd = Math.min(height, solidEnd + Math.round(height * 0.06));
+
+  const out = Buffer.alloc(origRaw.length);
+  for (let y = 0; y < height; y++) {
+    // origWeight: 1.0 = 100 % original, 0.0 = 100 % generated
+    let w: number;
+    if (y <= solidEnd) {
+      w = 1.0;
+    } else if (y >= fadeEnd) {
+      w = 0.0;
+    } else {
+      w = 1.0 - (y - solidEnd) / (fadeEnd - solidEnd);
+    }
+
+    const rowStart = y * width * 4;
+    if (w === 1.0) {
+      origRaw.copy(out, rowStart, rowStart, rowStart + width * 4);
+    } else if (w === 0.0) {
+      genRaw.copy(out, rowStart, rowStart, rowStart + width * 4);
+    } else {
+      const g = 1.0 - w;
+      for (let x = 0; x < width; x++) {
+        const i = rowStart + x * 4;
+        out[i]     = Math.round(origRaw[i]     * w + genRaw[i]     * g);
+        out[i + 1] = Math.round(origRaw[i + 1] * w + genRaw[i + 1] * g);
+        out[i + 2] = Math.round(origRaw[i + 2] * w + genRaw[i + 2] * g);
+        out[i + 3] = 255;
+      }
+    }
+  }
+
+  return sharp(out, { raw: { width, height, channels: 4 } })
+    .png()
+    .toBuffer();
+}
+
+// ═══════════════════════════════════════════════════════════
 // GPT-4o Vision — Quick Physique Scan
 // ═══════════════════════════════════════════════════════════
 
@@ -139,13 +229,17 @@ const VISION_SCAN_SYSTEM_PROMPT = `You are an expert fitness coach and physique 
   "buildType": "string — one of: slim, average, stocky, athletic, muscular",
   "muscleDevelopment": "string — brief description of overall visible muscle development, e.g. 'moderate chest and arm development, underdeveloped back and shoulders'",
   "keyOpportunities": ["string — top 3-4 muscle groups with most room for visible improvement"],
-  "realisticChanges": "string — a single detailed sentence describing what specific visible physical changes are realistically achievable in 3 months of perfect training and nutrition for this person's starting point. Be specific about body fat reduction ranges and which muscles would visibly grow."
+  "realisticChanges": "string — a single detailed sentence describing what specific visible physical changes are realistically achievable in 3 months of perfect training and nutrition for this person's starting point. Be specific about body fat reduction ranges and which muscles would visibly grow.",
+  "facialHair": "string — describe exactly what facial hair is visible: 'clean-shaven', 'light stubble', 'short beard', 'full beard', 'mustache only', etc. If the face is not visible, say 'not visible'.",
+  "faceEndPercent": "number — estimate what percentage from the TOP of the image the person's chin/jawline ends at. For example, if the chin is roughly 1/4 down the image, return 25. If only the body is visible (no face), return 0. Must be 0-100."
 }
 
 RULES:
 - Base everything on what you can actually see in the photo.
 - Be realistic and encouraging. Do not exaggerate or understate.
 - The realisticChanges field must describe concrete physical changes (e.g. 'reduce body fat from ~20% to ~16%, add visible size to chest and shoulders, tighten midsection'), not abstract goals.
+- The facialHair field MUST accurately describe the person's current facial hair state. This is critical for identity preservation.
+- The faceEndPercent field MUST be a number (not a string). Estimate where the chin ends as a percentage from the top of the image. This is used to preserve the face during image transformation.
 - Output ONLY the JSON object, nothing else.`;
 
 export async function runVisionPhysiqueScan(
@@ -217,6 +311,7 @@ OUTPUT JSON SCHEMA:
 
 // ── Analyze & Simulate ───────────────────────────────────
 export async function analyzeAndSimulate(input: {
+  userId: string;
   photoStorageKey: string;
   scenario: string;
   focusMuscle?: string;
@@ -263,12 +358,38 @@ export async function analyzeAndSimulate(input: {
     }),
   ]);
 
+  // Step 3: Composite the original face back onto the generated body.
+  // Parse faceEndPercent defensively — GPT can return a string or number.
+  const faceEnd = Number(visionAnalysis.faceEndPercent) || 0;
+  let finalImageUrl = imageResult.imageUrl;
+
+  if (faceEnd > 0 && !imageResult.metadata.isMock) {
+    try {
+      const compositeBuf = await compositePreserveFace(
+        photoUrl,
+        imageResult.imageUrl,
+        faceEnd,
+      );
+
+      const { storageKey } = await uploadBuffer(
+        input.userId,
+        "physique_output",
+        compositeBuf,
+        "image/png",
+      );
+
+      finalImageUrl = await createDownloadUrl(storageKey);
+    } catch (compErr) {
+      console.error("Face composite failed, returning raw FLUX image:", compErr);
+    }
+  }
+
   const fullResult: PhysiqueAIOutput = PhysiqueAIOutputSchema.parse({
     ...analysisResult,
     scenario: input.scenario,
     imageResult: {
       type: imageResult.metadata.isMock ? "mock_preview" : "generated",
-      url: imageResult.imageUrl,
+      url: finalImageUrl,
       metadata: imageResult.metadata,
     },
     disclaimers: [...FITNESS_DISCLAIMERS],

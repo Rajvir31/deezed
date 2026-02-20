@@ -101,6 +101,7 @@ export async function physiqueRoutes(fastify: FastifyInstance) {
     let result;
     try {
       result = await analyzeAndSimulate({
+        userId: request.userId!,
         photoStorageKey: data.photoStorageKey,
         scenario: data.scenario,
         focusMuscle: data.focusMuscle,
