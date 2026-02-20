@@ -241,7 +241,8 @@ export default function PhysiqueScreen() {
           <View>
             <Text className="text-dark-400 mb-6">
               Upload a shirtless photo to see what your physique could look like
-              with consistent training and nutrition.
+              with consistent training and nutrition. For best results, use a
+              photo from the neck or chin down.
             </Text>
 
             <TouchableOpacity
@@ -251,7 +252,7 @@ export default function PhysiqueScreen() {
               <Ionicons name="camera-outline" size={48} color="#6c757d" />
               <Text className="text-white font-bold mt-4 mb-1">Upload Photo</Text>
               <Text className="text-dark-400 text-sm text-center">
-                Tap to select a front-facing shirtless photo
+                Tap to select a shirtless photo (neck/chin down works best)
               </Text>
             </TouchableOpacity>
 

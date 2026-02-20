@@ -27,14 +27,26 @@ export class FluxKontextImageGenerator implements IImageGenerator {
 
     const prompt = this.buildPrompt(input);
 
-    const output = await this.replicate.run("black-forest-labs/flux-kontext-pro", {
-      input: {
-        prompt,
-        input_image: input.sourceImageUrl,
-        output_format: "png",
-        aspect_ratio: "match_input_image",
-      },
-    });
+    let output;
+    try {
+      output = await this.replicate.run("black-forest-labs/flux-kontext-pro", {
+        input: {
+          prompt,
+          input_image: input.sourceImageUrl,
+          safety_tolerance: 2,
+          output_format: "png",
+          aspect_ratio: "match_input_image",
+        },
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("flagged as sensitive") || msg.includes("E005")) {
+        throw new Error(
+          "Your photo was flagged by the image safety filter. Try using a photo from the neck or chin down — photos without faces are much less likely to be flagged.",
+        );
+      }
+      throw err;
+    }
 
     const raw = output as any;
     let imageUrl: string;
