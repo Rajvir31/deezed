@@ -73,13 +73,13 @@ export class FluxKontextImageGenerator implements IImageGenerator {
   private buildPrompt(input: IImageGeneratorInput): string {
     const changeDesc = this.buildChangeDescription(input);
 
-    const preserve = "Keep the exact same face, facial hair, hairstyle, expression, pose, clothing, and background. The ONLY changes should be to the body musculature and body fat.";
+    const preserve = "while maintaining the same face, facial hair, hairstyle, expression, pose, clothing, and background";
 
     if (input.scenario === "3_month_lock_in") {
-      return `${changeDesc}. ${preserve}`;
+      return `${changeDesc} ${preserve}.`;
     }
 
-    return `Make the ${input.focusMuscle ?? "muscles"} bigger and more defined. ${changeDesc}. ${preserve}`;
+    return `Make the ${input.focusMuscle ?? "muscles"} bigger and more defined. ${changeDesc} ${preserve}.`;
   }
 
   private buildChangeDescription(input: IImageGeneratorInput): string {
