@@ -19,7 +19,7 @@ const queryClient = new QueryClient({
 const CLERK_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
 // Clerk JWTs expire after ~60s. Refresh every 45s to keep the token valid.
-const TOKEN_REFRESH_INTERVAL_MS = 45_000;
+const TOKEN_REFRESH_INTERVAL_MS = 20_000;
 
 // Syncs Clerk token to Zustand store and refreshes it periodically
 function TokenSyncAndSlot() {

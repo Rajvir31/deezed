@@ -25,7 +25,7 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
     const result = await verifyToken(token, {
       secretKey: process.env.CLERK_SECRET_KEY!,
       authorizedParties: [],
-      clockSkewInMs: 10000,
+      clockSkewInMs: 30000,
     });
 
     const sub = (result as any)?.sub ?? (result as any)?.data?.sub;
