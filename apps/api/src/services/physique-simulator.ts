@@ -82,7 +82,7 @@ export class FluxKontextImageGenerator implements IImageGenerator {
       return `${changeDesc} while maintaining the same face, expression, pose, clothing, and background.`;
     }
 
-    return `Make the ${input.focusMuscle ?? "muscles"} slightly bigger and more defined. ${changeDesc} while maintaining the same face, expression, pose, clothing, and background.`;
+    return `Make the ${input.focusMuscle ?? "muscles"} bigger and more defined. ${changeDesc} while maintaining the same face, expression, pose, clothing, and background.`;
   }
 
   private buildChangeDescription(
@@ -91,22 +91,22 @@ export class FluxKontextImageGenerator implements IImageGenerator {
     va: PhysiqueVisionAnalysis | undefined,
     focusMuscle?: string,
   ): string {
-    const intensity = level === "advanced" ? "subtly" : "slightly";
+    const intensity = level === "advanced" ? "slightly" : "moderately";
 
     const areas = va
       ? va.keyOpportunities.slice(0, 3).join(", ")
       : "chest, shoulders, and arms";
 
     if (goal === "hypertrophy") {
-      return `Make this person ${intensity} more muscular with a bit more size in the ${areas}`;
+      return `Make this person ${intensity} more muscular with more size in the ${areas} and fuller muscle shape`;
     }
     if (goal === "cut") {
-      return `Make this person ${intensity} leaner with a bit more muscle definition and a tighter midsection${focusMuscle ? "" : ". Keep muscle size the same but reduce body fat slightly"}`;
+      return `Make this person ${intensity} leaner with more visible muscle definition, a tighter midsection, and less body fat`;
     }
     if (goal === "strength") {
-      return `Make this person look ${intensity} thicker and more solid, especially in the ${areas}`;
+      return `Make this person look ${intensity} thicker and more solid with more mass in the ${areas}`;
     }
-    return `Make this person look ${intensity} more athletic and toned with a bit more definition in the ${areas}`;
+    return `Make this person look ${intensity} more athletic and toned with more definition in the ${areas}`;
   }
 }
 
