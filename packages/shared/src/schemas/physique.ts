@@ -97,9 +97,6 @@ export interface PhysiqueVisionAnalysis {
   muscleDevelopment: string;
   keyOpportunities: string[];
   realisticChanges: string;
-  facialHair: string;
-  /** Percentage from the top of the image where the chin/jawline ends (0-100). 0 if face not visible. */
-  faceEndPercent: number;
 }
 
 export interface IImageGeneratorInput {

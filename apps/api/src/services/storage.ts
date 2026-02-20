@@ -84,33 +84,6 @@ export async function createDownloadUrl(storageKey: string): Promise<string> {
 }
 
 /**
- * Upload a buffer directly to S3 (used for server-side composited images).
- */
-export async function uploadBuffer(
-  userId: string,
-  photoType: string,
-  buffer: Buffer,
-  contentType: string,
-): Promise<{ storageKey: string }> {
-  const key = `${userId}/${photoType}/${randomUUID()}`;
-
-  const isR2 = (process.env.S3_ENDPOINT || "").includes("r2.cloudflarestorage.com");
-
-  const command = new PutObjectCommand({
-    Bucket: BUCKET(),
-    Key: key,
-    Body: buffer,
-    ContentType: contentType,
-    Metadata: { userId, photoType },
-    ...(isR2 ? {} : { ServerSideEncryption: "AES256" as const }),
-  });
-
-  await getS3Client().send(command);
-
-  return { storageKey: key };
-}
-
-/**
  * Delete a single photo from S3.
  */
 export async function deleteObject(storageKey: string): Promise<void> {
