@@ -1,8 +1,9 @@
 import Replicate from "replicate";
-import { callAI } from "./ai.js";
+import { callAI, callAIVision } from "./ai.js";
 import {
   PhysiqueAIOutputSchema,
   type PhysiqueAIOutput,
+  type PhysiqueVisionAnalysis,
   type IImageGenerator,
   type IImageGeneratorInput,
   type IImageGeneratorOutput,
@@ -30,8 +31,9 @@ export class FluxKontextImageGenerator implements IImageGenerator {
       input: {
         prompt,
         input_image: input.sourceImageUrl,
-        output_format: "jpg",
-        aspect_ratio: "3:4",
+        prompt_upsampling: true,
+        output_format: "png",
+        aspect_ratio: "match_input_image",
       },
     });
 
@@ -58,25 +60,63 @@ export class FluxKontextImageGenerator implements IImageGenerator {
   }
 
   private buildPrompt(input: IImageGeneratorInput): string {
-    const scenarioDesc = input.scenario === "3_month_lock_in"
-      ? "after 3 months of dedicated strength training and clean nutrition"
-      : `with significantly more developed ${input.focusMuscle ?? "muscles"}`;
+    const va = input.visionAnalysis;
 
-    const goalHint = input.userProfile.goal === "muscle_gain"
-      ? "more muscular with visible hypertrophy"
-      : input.userProfile.goal === "fat_loss"
-        ? "leaner with more visible muscle definition and less body fat"
-        : "more athletic and toned with improved muscle definition";
+    const goalHint = input.userProfile.goal === "hypertrophy"
+      ? "more muscular with visible hypertrophy, fuller muscle bellies, and rounder muscle shapes"
+      : input.userProfile.goal === "cut"
+        ? "leaner with sharply visible muscle definition, increased vascularity, and noticeably less body fat"
+        : input.userProfile.goal === "strength"
+          ? "denser and more powerful-looking with thicker muscles, a wider frame, and a stronger build"
+          : "more athletic and toned with improved overall muscle definition";
+
+    const experienceMultiplier = input.userProfile.experienceLevel === "beginner"
+      ? "significant and noticeable"
+      : input.userProfile.experienceLevel === "intermediate"
+        ? "moderate but clearly visible"
+        : "subtle but meaningful";
+
+    if (va) {
+      const scenarioBlock = input.scenario === "3_month_lock_in"
+        ? [
+            `This person currently has approximately ${va.bodyFatRange} body fat with a ${va.buildType} build.`,
+            `Their current muscle development: ${va.muscleDevelopment}.`,
+            `Transform this person to show the realistic best-case results of 3 months of 100% dedicated strength training and strict clean nutrition.`,
+            `Apply ${experienceMultiplier} changes for a ${input.userProfile.experienceLevel} lifter:`,
+            va.realisticChanges,
+          ].join(" ")
+        : [
+            `This person currently has a ${va.buildType} build with ${va.muscleDevelopment}.`,
+            `Show this person with significantly more developed ${input.focusMuscle ?? "muscles"} after focused training.`,
+            `Emphasize clear, visible growth in the ${input.focusMuscle ?? "target"} area while keeping other areas the same.`,
+          ].join(" ");
+
+      return [
+        scenarioBlock,
+        `Make them look ${goalHint}.`,
+        "Keep the exact same person — same face, same identity, same skin tone, same hair, same pose, same clothing, same background.",
+        "The result must look like a real high-quality photograph: natural lighting, real skin texture with pores and natural imperfections, realistic shadows, no airbrushed skin, no HDR glow, no artificial sheen, no cartoon or CGI artifacts.",
+        input.focusMuscle
+          ? `Emphasize visible growth specifically in the ${input.focusMuscle}.`
+          : "Show balanced overall muscle development across all visible muscle groups.",
+        "Do NOT alter the person's face, facial expression, or identity in any way.",
+      ].join(" ");
+    }
+
+    // Fallback when vision analysis is unavailable
+    const scenarioDesc = input.scenario === "3_month_lock_in"
+      ? `after 3 months of dedicated strength training and clean nutrition with ${experienceMultiplier} improvement`
+      : `with significantly more developed ${input.focusMuscle ?? "muscles"}`;
 
     return [
       `Show this exact same person ${scenarioDesc}.`,
       `Make them look ${goalHint}.`,
-      "Keep the same face, identity, skin tone, hair, pose, clothing, and background.",
-      "The transformation should look realistic and achievable — natural lighting, real skin texture, no artificial glow or cartoon effects.",
+      "Keep the exact same person — same face, same identity, same skin tone, same hair, same pose, same clothing, same background.",
+      "The result must look like a real high-quality photograph: natural lighting, real skin texture with pores and natural imperfections, realistic shadows, no airbrushed skin, no HDR glow, no artificial sheen, no cartoon or CGI artifacts.",
       input.focusMuscle
         ? `Emphasize visible growth in the ${input.focusMuscle} area specifically.`
         : "Show balanced overall muscle development.",
-      "Do NOT change the person's face or identity in any way.",
+      "Do NOT alter the person's face, facial expression, or identity in any way.",
     ].join(" ");
   }
 }
@@ -85,7 +125,44 @@ export function createImageGenerator(): IImageGenerator {
   return new FluxKontextImageGenerator(process.env.REPLICATE_API_TOKEN!);
 }
 
-// ── Physique Analysis Prompt ─────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// GPT-4o Vision — Quick Physique Scan
+// ═══════════════════════════════════════════════════════════
+
+const VISION_SCAN_SYSTEM_PROMPT = `You are an expert fitness coach and physique analyst. You will be shown a photo of a person. Analyze their current physique and output ONLY valid JSON matching this schema:
+
+{
+  "bodyFatRange": "string — estimated body fat percentage range, e.g. '15-18%'",
+  "buildType": "string — one of: slim, average, stocky, athletic, muscular",
+  "muscleDevelopment": "string — brief description of overall visible muscle development, e.g. 'moderate chest and arm development, underdeveloped back and shoulders'",
+  "keyOpportunities": ["string — top 3-4 muscle groups with most room for visible improvement"],
+  "realisticChanges": "string — a single detailed sentence describing what specific visible physical changes are realistically achievable in 3 months of perfect training and nutrition for this person's starting point. Be specific about body fat reduction ranges and which muscles would visibly grow."
+}
+
+RULES:
+- Base everything on what you can actually see in the photo.
+- Be realistic and encouraging. Do not exaggerate or understate.
+- The realisticChanges field must describe concrete physical changes (e.g. 'reduce body fat from ~20% to ~16%, add visible size to chest and shoulders, tighten midsection'), not abstract goals.
+- Output ONLY the JSON object, nothing else.`;
+
+export async function runVisionPhysiqueScan(
+  photoUrl: string,
+  experienceLevel: string,
+): Promise<PhysiqueVisionAnalysis> {
+  return callAIVision<PhysiqueVisionAnalysis>({
+    systemPrompt: VISION_SCAN_SYSTEM_PROMPT,
+    userPrompt: `Analyze this person's physique. They are a ${experienceLevel} lifter. Provide your assessment as JSON.`,
+    imageUrl: photoUrl,
+    temperature: 0.3,
+    maxTokens: 512,
+    parse: (raw) => JSON.parse(raw),
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Text-Based Physique Analysis Prompt (plan generation)
+// ═══════════════════════════════════════════════════════════
+
 const PHYSIQUE_SYSTEM_PROMPT = `You are Deezed AI Physique Analyst, an expert at visual physique assessment and program design.
 
 IMPORTANT DISCLAIMERS:
@@ -94,8 +171,8 @@ IMPORTANT DISCLAIMERS:
 - Always recommend consulting a healthcare professional for medical concerns.
 - Physique previews are illustrative simulations, not guaranteed outcomes.
 
-You analyze a user's current physique description and create a targeted plan.
-Since you cannot see the actual photo, base your analysis on the user context provided.
+You analyze a user's current physique and create a targeted plan.
+Use the provided vision analysis of their photo to ground your assessment.
 
 RULES:
 - Be encouraging and constructive.
@@ -151,14 +228,19 @@ export async function analyzeAndSimulate(input: {
 }): Promise<PhysiqueAIOutput> {
   const imageGenerator = createImageGenerator();
 
-  // Get signed URL for the uploaded photo
   const photoUrl = await createDownloadUrl(input.photoStorageKey);
 
-  // Run AI analysis and image generation in parallel
+  // Step 1: Run GPT-4o Vision to analyze the actual photo first
+  const visionAnalysis = await runVisionPhysiqueScan(
+    photoUrl,
+    input.userProfile.experienceLevel,
+  );
+
+  // Step 2: Run text-based plan analysis and vision-informed image generation in parallel
   const [analysisResult, imageResult] = await Promise.all([
     callAI({
       systemPrompt: PHYSIQUE_SYSTEM_PROMPT,
-      userPrompt: buildPhysiqueUserPrompt(input),
+      userPrompt: buildPhysiqueUserPrompt(input, visionAnalysis),
       temperature: 0.6,
       maxTokens: 4096,
       parse: (raw: string) => JSON.parse(raw),
@@ -171,10 +253,10 @@ export async function analyzeAndSimulate(input: {
         experienceLevel: input.userProfile.experienceLevel,
         goal: input.userProfile.goal,
       },
+      visionAnalysis,
     }),
   ]);
 
-  // Combine and validate
   const fullResult: PhysiqueAIOutput = PhysiqueAIOutputSchema.parse({
     ...analysisResult,
     scenario: input.scenario,
@@ -189,18 +271,21 @@ export async function analyzeAndSimulate(input: {
   return fullResult;
 }
 
-function buildPhysiqueUserPrompt(input: {
-  scenario: string;
-  focusMuscle?: string;
-  userProfile: {
-    experienceLevel: string;
-    goal: string;
-    daysPerWeek: number;
-    equipment: string[];
-    injuries: string[];
-    weight?: number;
-  };
-}): string {
+function buildPhysiqueUserPrompt(
+  input: {
+    scenario: string;
+    focusMuscle?: string;
+    userProfile: {
+      experienceLevel: string;
+      goal: string;
+      daysPerWeek: number;
+      equipment: string[];
+      injuries: string[];
+      weight?: number;
+    };
+  },
+  visionAnalysis: PhysiqueVisionAnalysis,
+): string {
   return `Analyze this user and create a targeted plan:
 
 User Profile:
@@ -211,10 +296,18 @@ User Profile:
 - Injuries: ${input.userProfile.injuries.length > 0 ? input.userProfile.injuries.join(", ") : "None"}
 ${input.userProfile.weight ? `- Weight: ${input.userProfile.weight} lbs` : ""}
 
+Photo Analysis (from vision scan):
+- Build type: ${visionAnalysis.buildType}
+- Estimated body fat: ${visionAnalysis.bodyFatRange}
+- Muscle development: ${visionAnalysis.muscleDevelopment}
+- Key opportunities: ${visionAnalysis.keyOpportunities.join(", ")}
+- Realistic 3-month changes: ${visionAnalysis.realisticChanges}
+
 Scenario: ${input.scenario === "3_month_lock_in" ? "3 months of full dedication (diet + training adherence)" : `Focus on ${input.focusMuscle} development`}
 ${input.focusMuscle ? `Focus muscle: ${input.focusMuscle}` : ""}
 
 Provide realistic assessment and a targeted plan for this scenario.
 For the 3-month scenario, assume 100% adherence to training and nutrition.
-For single muscle focus, optimize the program to prioritize that muscle while maintaining overall balance.`;
+For single muscle focus, optimize the program to prioritize that muscle while maintaining overall balance.
+Use the photo analysis above to ground your recommendations in this person's actual starting point.`;
 }

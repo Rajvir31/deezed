@@ -91,6 +91,14 @@ export type PhotoAsset = z.infer<typeof PhotoAssetSchema>;
 // 2. Swap the implementation in the DI container / service factory
 // ────────────────────────────────────────────────────────
 
+export interface PhysiqueVisionAnalysis {
+  bodyFatRange: string;
+  buildType: string;
+  muscleDevelopment: string;
+  keyOpportunities: string[];
+  realisticChanges: string;
+}
+
 export interface IImageGeneratorInput {
   sourceImageUrl: string;
   scenario: string;
@@ -99,6 +107,7 @@ export interface IImageGeneratorInput {
     experienceLevel: string;
     goal: string;
   };
+  visionAnalysis?: PhysiqueVisionAnalysis;
 }
 
 export interface IImageGeneratorOutput {
