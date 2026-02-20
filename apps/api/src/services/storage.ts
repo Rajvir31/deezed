@@ -45,6 +45,8 @@ export async function createUploadUrl(
 ): Promise<{ uploadUrl: string; storageKey: string; expiresIn: number }> {
   const key = `${userId}/${photoType}/${randomUUID()}`;
 
+  const isR2 = (process.env.S3_ENDPOINT || "").includes("r2.cloudflarestorage.com");
+
   const command = new PutObjectCommand({
     Bucket: BUCKET(),
     Key: key,
@@ -53,7 +55,7 @@ export async function createUploadUrl(
       userId,
       photoType,
     },
-    ServerSideEncryption: "AES256",
+    ...(isR2 ? {} : { ServerSideEncryption: "AES256" as const }),
   });
 
   const uploadUrl = await getSignedUrl(getS3Client(), command, {
