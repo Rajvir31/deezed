@@ -359,17 +359,32 @@ export async function analyzeAndSimulate(input: {
   ]);
 
   // Step 3: Composite the original face back onto the generated body.
-  // Parse faceEndPercent defensively — GPT can return a string or number.
-  const faceEnd = Number(visionAnalysis.faceEndPercent) || 0;
+  const rawFaceEnd = Number(visionAnalysis.faceEndPercent) || 0;
+  const faceDetected =
+    visionAnalysis.facialHair != null &&
+    visionAnalysis.facialHair !== "not visible";
+  // If GPT detected a face but gave a bad/zero faceEndPercent, default to 30%
+  const faceEnd = rawFaceEnd > 0 ? rawFaceEnd : faceDetected ? 30 : 0;
+
+  console.log("[physique] vision analysis:", JSON.stringify({
+    facialHair: visionAnalysis.facialHair,
+    faceEndPercent: visionAnalysis.faceEndPercent,
+    rawFaceEnd,
+    faceEnd,
+    faceDetected,
+  }));
+
   let finalImageUrl = imageResult.imageUrl;
 
   if (faceEnd > 0 && !imageResult.metadata.isMock) {
     try {
+      console.log("[physique] Running face composite with faceEnd=%d", faceEnd);
       const compositeBuf = await compositePreserveFace(
         photoUrl,
         imageResult.imageUrl,
         faceEnd,
       );
+      console.log("[physique] Composite done, buffer size: %d bytes", compositeBuf.length);
 
       const { storageKey } = await uploadBuffer(
         input.userId,
@@ -379,9 +394,12 @@ export async function analyzeAndSimulate(input: {
       );
 
       finalImageUrl = await createDownloadUrl(storageKey);
+      console.log("[physique] Composited image uploaded, serving from S3");
     } catch (compErr) {
-      console.error("Face composite failed, returning raw FLUX image:", compErr);
+      console.error("[physique] Face composite FAILED, returning raw FLUX image:", compErr);
     }
+  } else {
+    console.log("[physique] Skipping face composite (faceEnd=%d, isMock=%s)", faceEnd, imageResult.metadata.isMock);
   }
 
   const fullResult: PhysiqueAIOutput = PhysiqueAIOutputSchema.parse({

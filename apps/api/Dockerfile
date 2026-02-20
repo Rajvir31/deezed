@@ -1,7 +1,7 @@
 FROM node:20-slim
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends dumb-init openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends dumb-init openssl ca-certificates libglib2.0-0 libexpat1 && rm -rf /var/lib/apt/lists/*
 
 # Copy workspace package manifests for dependency caching
 COPY package.json package-lock.json* turbo.json tsconfig.base.json ./
