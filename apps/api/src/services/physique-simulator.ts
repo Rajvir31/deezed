@@ -71,12 +71,7 @@ export class FluxKontextImageGenerator implements IImageGenerator {
   }
 
   private buildPrompt(input: IImageGeneratorInput): string {
-    const va = input.visionAnalysis;
-    const goal = input.userProfile.goal;
-    const level = input.userProfile.experienceLevel;
-
-    // Build the core body-change instruction from vision analysis
-    const changeDesc = this.buildChangeDescription(goal, level, va, input.focusMuscle);
+    const changeDesc = this.buildChangeDescription(input);
 
     if (input.scenario === "3_month_lock_in") {
       return `${changeDesc} while maintaining the same face, expression, pose, clothing, and background.`;
@@ -85,28 +80,47 @@ export class FluxKontextImageGenerator implements IImageGenerator {
     return `Make the ${input.focusMuscle ?? "muscles"} bigger and more defined. ${changeDesc} while maintaining the same face, expression, pose, clothing, and background.`;
   }
 
-  private buildChangeDescription(
-    goal: string,
-    level: string,
-    va: PhysiqueVisionAnalysis | undefined,
-    focusMuscle?: string,
-  ): string {
-    const intensity = level === "advanced" ? "slightly" : "moderately";
+  private buildChangeDescription(input: IImageGeneratorInput): string {
+    const { goal, experienceLevel, daysPerWeek, equipment } = input.userProfile;
+    const va = input.visionAnalysis;
+
+    // Scale transformation intensity based on experience + training frequency
+    const intensity = this.getIntensity(experienceLevel, daysPerWeek);
+
+    // Pick physique style based on equipment access
+    const physiqueStyle = this.getPhysiqueStyle(equipment);
 
     const areas = va
       ? va.keyOpportunities.slice(0, 3).join(", ")
       : "chest, shoulders, and arms";
 
     if (goal === "hypertrophy") {
-      return `Make this person ${intensity} more muscular with more size in the ${areas} and fuller muscle shape`;
+      return `Make this person ${intensity} more muscular with more size in the ${areas} and a ${physiqueStyle} look`;
     }
     if (goal === "cut") {
-      return `Make this person ${intensity} leaner with more visible muscle definition, a tighter midsection, and less body fat`;
+      return `Make this person ${intensity} leaner with more visible muscle definition, a tighter midsection, and less body fat with a ${physiqueStyle} look`;
     }
     if (goal === "strength") {
-      return `Make this person look ${intensity} thicker and more solid with more mass in the ${areas}`;
+      return `Make this person look ${intensity} thicker and more solid with more mass in the ${areas} and a ${physiqueStyle} build`;
     }
-    return `Make this person look ${intensity} more athletic and toned with more definition in the ${areas}`;
+    return `Make this person look ${intensity} more athletic and toned with more definition in the ${areas} and a ${physiqueStyle} look`;
+  }
+
+  private getIntensity(level: string, daysPerWeek: number): string {
+    // More training days + less experience = more visible newbie gains
+    if (level === "advanced") return "slightly";
+    if (level === "beginner" && daysPerWeek >= 5) return "noticeably";
+    if (level === "beginner") return "moderately";
+    if (daysPerWeek >= 5) return "moderately";
+    return "moderately";
+  }
+
+  private getPhysiqueStyle(equipment: string[]): string {
+    if (equipment.includes("full_gym")) return "well-rounded muscular";
+    if (equipment.includes("home_barbell")) return "strong and dense";
+    if (equipment.includes("home_dumbbells")) return "toned and defined";
+    if (equipment.includes("bodyweight_only")) return "lean and athletic";
+    return "fit and toned";
   }
 }
 
@@ -241,6 +255,9 @@ export async function analyzeAndSimulate(input: {
       userProfile: {
         experienceLevel: input.userProfile.experienceLevel,
         goal: input.userProfile.goal,
+        daysPerWeek: input.userProfile.daysPerWeek,
+        equipment: input.userProfile.equipment,
+        weight: input.userProfile.weight,
       },
       visionAnalysis,
     }),

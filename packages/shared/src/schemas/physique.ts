@@ -106,6 +106,9 @@ export interface IImageGeneratorInput {
   userProfile: {
     experienceLevel: string;
     goal: string;
+    daysPerWeek: number;
+    equipment: string[];
+    weight?: number;
   };
   visionAnalysis?: PhysiqueVisionAnalysis;
 }
