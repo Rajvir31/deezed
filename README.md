@@ -6,8 +6,6 @@ Short walkthrough of the Deezed flow: workout generation, AI transformation prev
 
 [![Watch the Deezed demo](https://img.youtube.com/vi/VGLbBL2Tz_Y/0.jpg)](https://youtube.com/shorts/VGLbBL2Tz_Y)
 
-A production-grade, full-stack AI workout app built as a monorepo with a React Native (Expo) mobile client and a Fastify + Prisma + Postgres API backend.
-
 ---
 
 ## 1. Architecture Overview
