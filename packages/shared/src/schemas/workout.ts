@@ -128,6 +128,15 @@ export const CreatePowerliftLogSchema = z.object({
 
 export type CreatePowerliftLog = z.infer<typeof CreatePowerliftLogSchema>;
 
+export const UpdatePowerliftLogSchema = z.object({
+  weight: z.number().min(0).optional(),
+  reps: z.number().int().min(1).optional(),
+  date: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export type UpdatePowerliftLog = z.infer<typeof UpdatePowerliftLogSchema>;
+
 // ── Plan Generation Request ──────────────────────────────
 export const GeneratePlanRequestSchema = z.object({
   experienceLevel: z.string(),

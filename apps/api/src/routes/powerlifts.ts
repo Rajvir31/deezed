@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { prisma } from "../lib/prisma.js";
 import { authenticate } from "../plugins/auth.js";
-import { CreatePowerliftLogSchema, BIG_THREE_LIFTS } from "@deezed/shared";
+import { CreatePowerliftLogSchema, UpdatePowerliftLogSchema, BIG_THREE_LIFTS } from "@deezed/shared";
 
 export async function powerliftRoutes(fastify: FastifyInstance) {
   // POST /powerlifts/log — log a top set
@@ -49,6 +49,54 @@ export async function powerliftRoutes(fastify: FastifyInstance) {
     });
 
     return logs;
+  });
+
+  // PUT /powerlifts/log/:id — edit a log entry
+  fastify.put("/powerlifts/log/:id", {
+    preHandler: [authenticate],
+  }, async (request, reply) => {
+    if (!request.userId) {
+      return reply.status(400).send({ error: "Complete onboarding first" });
+    }
+
+    const { id } = request.params as { id: string };
+    const data = UpdatePowerliftLogSchema.parse(request.body);
+
+    const existing = await prisma.powerliftLog.findUnique({ where: { id } });
+    if (!existing || existing.userId !== request.userId) {
+      return reply.status(404).send({ error: "Log not found" });
+    }
+
+    const updated = await prisma.powerliftLog.update({
+      where: { id },
+      data: {
+        ...(data.weight !== undefined && { weight: data.weight }),
+        ...(data.reps !== undefined && { reps: data.reps }),
+        ...(data.date !== undefined && { date: new Date(data.date) }),
+        ...(data.notes !== undefined && { notes: data.notes }),
+      },
+    });
+
+    return updated;
+  });
+
+  // DELETE /powerlifts/log/:id — delete a log entry
+  fastify.delete("/powerlifts/log/:id", {
+    preHandler: [authenticate],
+  }, async (request, reply) => {
+    if (!request.userId) {
+      return reply.status(400).send({ error: "Complete onboarding first" });
+    }
+
+    const { id } = request.params as { id: string };
+
+    const existing = await prisma.powerliftLog.findUnique({ where: { id } });
+    if (!existing || existing.userId !== request.userId) {
+      return reply.status(404).send({ error: "Log not found" });
+    }
+
+    await prisma.powerliftLog.delete({ where: { id } });
+    return { success: true };
   });
 
   // GET /powerlifts/summary — latest set + PR for each lift

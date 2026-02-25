@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../client";
 import { useAuthStore } from "../../stores/auth";
-import type { CreatePowerliftLog, PowerliftLog, BigThreeLift } from "@deezed/shared";
+import type { CreatePowerliftLog, UpdatePowerliftLog, PowerliftLog, BigThreeLift } from "@deezed/shared";
 
 type LiftSummaryEntry = {
   latest: { weight: number; reps: number; date: string } | null;
@@ -40,6 +40,37 @@ export function useLogPowerlift() {
       apiClient("/powerlifts/log", {
         method: "POST",
         body: data,
+        token: useAuthStore.getState().token,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["powerlifts"] });
+    },
+  });
+}
+
+export function useEditPowerlift() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...data }: UpdatePowerliftLog & { id: string }) =>
+      apiClient(`/powerlifts/log/${id}`, {
+        method: "PUT",
+        body: data,
+        token: useAuthStore.getState().token,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["powerlifts"] });
+    },
+  });
+}
+
+export function useDeletePowerlift() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiClient(`/powerlifts/log/${id}`, {
+        method: "DELETE",
         token: useAuthStore.getState().token,
       }),
     onSuccess: () => {

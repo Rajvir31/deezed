@@ -16,6 +16,8 @@ import {
   usePowerliftSummary,
   usePowerliftHistory,
   useLogPowerlift,
+  useEditPowerlift,
+  useDeletePowerlift,
 } from "@/api/hooks/usePowerlifts";
 import { BIG_THREE_LIFTS, type BigThreeLift } from "@deezed/shared";
 import { SwipeableTabs } from "@/components/SwipeableTabs";
@@ -31,12 +33,19 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 export default function Big3Screen() {
   const { data: summary, isLoading: summaryLoading } = usePowerliftSummary();
   const logPowerlift = useLogPowerlift();
+  const editPowerlift = useEditPowerlift();
+  const deletePowerlift = useDeletePowerlift();
 
   const [selectedLift, setSelectedLift] = useState<BigThreeLift | null>(null);
   const [chartLift, setChartLift] = useState<BigThreeLift>("bench");
   const [weightInput, setWeightInput] = useState("");
   const [repsInput, setRepsInput] = useState("");
   const [dateInput, setDateInput] = useState("");
+
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [editWeight, setEditWeight] = useState("");
+  const [editReps, setEditReps] = useState("");
+  const [editDate, setEditDate] = useState("");
 
   const { data: historyData } = usePowerliftHistory(chartLift);
 
@@ -86,6 +95,68 @@ export default function Big3Screen() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       Alert.alert("Failed to log", msg);
+    }
+  };
+
+  const handleHistoryAction = (log: { id: string; weight: number; reps: number; date: string }) => {
+    Alert.alert(
+      `${log.weight} x ${log.reps}  —  ${new Date(log.date).toLocaleDateString()}`,
+      undefined,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Edit",
+          onPress: () => {
+            setEditingLogId(log.id);
+            setEditWeight(String(log.weight));
+            setEditReps(String(log.reps));
+            setEditDate(new Date(log.date).toISOString().split("T")[0]);
+          },
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert("Delete this log?", "This cannot be undone.", [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Delete",
+                style: "destructive",
+                onPress: async () => {
+                  try {
+                    await deletePowerlift.mutateAsync(log.id);
+                  } catch (err) {
+                    const msg = err instanceof Error ? err.message : "Unknown error";
+                    Alert.alert("Failed to delete", msg);
+                  }
+                },
+              },
+            ]);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingLogId) return;
+    const w = parseFloat(editWeight);
+    const r = parseInt(editReps, 10);
+    if (isNaN(w) || isNaN(r) || w <= 0 || r <= 0) {
+      Alert.alert("Invalid input", "Enter a valid weight and reps.");
+      return;
+    }
+    try {
+      await editPowerlift.mutateAsync({
+        id: editingLogId,
+        weight: w,
+        reps: r,
+        date: editDate ? new Date(editDate + "T12:00:00").toISOString() : undefined,
+      });
+      setEditingLogId(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      Alert.alert("Failed to update", msg);
     }
   };
 
@@ -266,25 +337,83 @@ export default function Big3Screen() {
           {historyData && historyData.length > 0 ? (
             <View className="bg-dark-800 rounded-xl border border-dark-700 overflow-hidden">
               {historyData.slice(0, 20).map((log, i) => (
-                <View
-                  key={log.id}
-                  className={`flex-row justify-between items-center p-3.5 ${
-                    i < Math.min(historyData.length, 20) - 1 ? "border-b border-dark-700" : ""
-                  }`}
-                >
-                  <Text className="text-dark-400 text-sm">
-                    {new Date(log.date).toLocaleDateString()}
-                  </Text>
-                  <View className="flex-row items-center gap-2">
-                    <Text className="text-white font-bold">
-                      {log.weight} x {log.reps}
-                    </Text>
-                    {log.reps >= 5 && (
-                      <View className="bg-green-500/20 px-1.5 py-0.5 rounded">
-                        <Text className="text-green-400 text-xs font-bold">5+</Text>
+                <View key={log.id}>
+                  {editingLogId === log.id ? (
+                    <View className="p-3.5 bg-dark-700/50">
+                      <View className="flex-row gap-2 mb-2">
+                        <View className="flex-1">
+                          <Text className="text-dark-300 text-xs mb-1">Weight</Text>
+                          <TextInput
+                            className="bg-dark-700 text-white px-3 py-2 rounded-lg text-center"
+                            keyboardType="numeric"
+                            value={editWeight}
+                            onChangeText={setEditWeight}
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-dark-300 text-xs mb-1">Reps</Text>
+                          <TextInput
+                            className="bg-dark-700 text-white px-3 py-2 rounded-lg text-center"
+                            keyboardType="numeric"
+                            value={editReps}
+                            onChangeText={setEditReps}
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-dark-300 text-xs mb-1">Date</Text>
+                          <TextInput
+                            className="bg-dark-700 text-white px-3 py-2 rounded-lg text-center text-xs"
+                            placeholder="YYYY-MM-DD"
+                            placeholderTextColor="#495057"
+                            value={editDate}
+                            onChangeText={setEditDate}
+                          />
+                        </View>
                       </View>
-                    )}
-                  </View>
+                      <View className="flex-row gap-2">
+                        <TouchableOpacity
+                          className="flex-1 bg-dark-600 py-2 rounded-lg items-center"
+                          onPress={() => setEditingLogId(null)}
+                        >
+                          <Text className="text-dark-300 font-semibold">Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          className="flex-1 bg-brand-500 py-2 rounded-lg items-center"
+                          onPress={handleSaveEdit}
+                          disabled={editPowerlift.isPending}
+                        >
+                          {editPowerlift.isPending ? (
+                            <ActivityIndicator color="white" size="small" />
+                          ) : (
+                            <Text className="text-white font-semibold">Save</Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      className={`flex-row justify-between items-center p-3.5 ${
+                        i < Math.min(historyData.length, 20) - 1 ? "border-b border-dark-700" : ""
+                      }`}
+                      onPress={() => handleHistoryAction(log)}
+                      activeOpacity={0.6}
+                    >
+                      <Text className="text-dark-400 text-sm">
+                        {new Date(log.date).toLocaleDateString()}
+                      </Text>
+                      <View className="flex-row items-center gap-2">
+                        <Text className="text-white font-bold">
+                          {log.weight} x {log.reps}
+                        </Text>
+                        {log.reps >= 5 && (
+                          <View className="bg-green-500/20 px-1.5 py-0.5 rounded">
+                            <Text className="text-green-400 text-xs font-bold">5+</Text>
+                          </View>
+                        )}
+                        <Ionicons name="ellipsis-vertical" size={14} color="#6c757d" />
+                      </View>
+                    </TouchableOpacity>
+                  )}
                 </View>
               ))}
             </View>
