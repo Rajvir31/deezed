@@ -6,6 +6,10 @@ export type ExperienceLevel = (typeof EXPERIENCE_LEVELS)[number];
 export const TRAINING_GOALS = ["hypertrophy", "strength", "cut"] as const;
 export type TrainingGoal = (typeof TRAINING_GOALS)[number];
 
+// ── Big 3 Powerlifts ────────────────────────────────────
+export const BIG_THREE_LIFTS = ["bench", "squat", "deadlift"] as const;
+export type BigThreeLift = (typeof BIG_THREE_LIFTS)[number];
+
 // ── Equipment Access ─────────────────────────────────────
 export const EQUIPMENT_OPTIONS = [
   "full_gym",

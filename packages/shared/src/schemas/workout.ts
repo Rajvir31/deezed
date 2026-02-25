@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MUSCLE_GROUPS, EQUIPMENT_OPTIONS, SPLIT_TYPES } from "../constants";
+import { MUSCLE_GROUPS, EQUIPMENT_OPTIONS, SPLIT_TYPES, BIG_THREE_LIFTS } from "../constants";
 
 // ── Exercise ─────────────────────────────────────────────
 export const ExerciseSchema = z.object({
@@ -105,6 +105,28 @@ export const StartWorkoutSchema = z.object({
 });
 
 export type StartWorkout = z.infer<typeof StartWorkoutSchema>;
+
+// ── Powerlift Log (Big 3 Top Sets) ──────────────────────
+export const PowerliftLogSchema = z.object({
+  id: z.string().uuid(),
+  lift: z.enum(BIG_THREE_LIFTS),
+  weight: z.number().min(0),
+  reps: z.number().int().min(1),
+  date: z.string(),
+  notes: z.string().optional().nullable(),
+});
+
+export type PowerliftLog = z.infer<typeof PowerliftLogSchema>;
+
+export const CreatePowerliftLogSchema = z.object({
+  lift: z.enum(BIG_THREE_LIFTS),
+  weight: z.number().min(0),
+  reps: z.number().int().min(1),
+  date: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export type CreatePowerliftLog = z.infer<typeof CreatePowerliftLogSchema>;
 
 // ── Plan Generation Request ──────────────────────────────
 export const GeneratePlanRequestSchema = z.object({

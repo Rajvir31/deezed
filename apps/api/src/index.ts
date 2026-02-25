@@ -12,6 +12,7 @@ import { progressRoutes } from "./routes/progress.js";
 import { aiCoachRoutes } from "./routes/ai-coach.js";
 import { physiqueRoutes } from "./routes/physique.js";
 import { photoRoutes } from "./routes/photos.js";
+import { powerliftRoutes } from "./routes/powerlifts.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -70,6 +71,7 @@ async function main() {
   await fastify.register(workoutRoutes);
   await fastify.register(progressRoutes);
   await fastify.register(photoRoutes);
+  await fastify.register(powerliftRoutes);
 
   // AI routes with rate limiting (scoped to this sub-instance)
   await fastify.register(async (instance) => {

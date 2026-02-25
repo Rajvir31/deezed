@@ -30,6 +30,7 @@ model UserProfile {
   bodyMetrics     BodyMetric[]
   photoAssets     PhotoAsset[]
   aiResults       AIResult[]
+  powerliftLogs   PowerliftLog[]
 
   @@map("user_profiles")
 }
@@ -129,6 +130,22 @@ model PhotoAsset {
   user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("photo_assets")
+}
+
+// ── Powerlift Log (Big 3 top-set tracker) ────────────────
+model PowerliftLog {
+  id     String   @id @default(uuid())
+  userId String
+  lift   String   // bench | squat | deadlift
+  weight Float
+  reps   Int
+  date   DateTime @default(now())
+  notes  String?
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, lift, date])
+  @@map("powerlift_logs")
 }
 
 // ── AI Result ────────────────────────────────────────────

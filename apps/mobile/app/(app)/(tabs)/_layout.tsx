@@ -1,9 +1,12 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useProfile } from "@/api/hooks/useProfile";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const { data: profile } = useProfile();
+  const isStrength = profile?.goal === "strength";
 
   return (
     <Tabs
@@ -49,6 +52,16 @@ export default function TabLayout() {
           title: "Progress",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="stats-chart" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="big3"
+        options={{
+          title: "Big 3",
+          href: isStrength ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="barbell" size={size} color={color} />
           ),
         }}
       />
