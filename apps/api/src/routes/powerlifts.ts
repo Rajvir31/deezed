@@ -77,7 +77,7 @@ export async function powerliftRoutes(fastify: FastifyInstance) {
       ]);
 
       const pr = await prisma.powerliftLog.findFirst({
-        where: { userId: request.userId, lift, reps: { gte: 5 } },
+        where: { userId: request.userId, lift },
         orderBy: { weight: "desc" },
       });
 

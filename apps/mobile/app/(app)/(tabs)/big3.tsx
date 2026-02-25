@@ -36,6 +36,7 @@ export default function Big3Screen() {
   const [chartLift, setChartLift] = useState<BigThreeLift>("bench");
   const [weightInput, setWeightInput] = useState("");
   const [repsInput, setRepsInput] = useState("");
+  const [dateInput, setDateInput] = useState("");
 
   const { data: historyData } = usePowerliftHistory(chartLift);
 
@@ -45,6 +46,7 @@ export default function Big3Screen() {
       return;
     }
     setSelectedLift(lift);
+    setDateInput(new Date().toISOString().split("T")[0]);
 
     const entry = summary?.[lift];
     if (entry?.latest) {
@@ -75,10 +77,12 @@ export default function Big3Screen() {
         lift: selectedLift,
         weight: w,
         reps: r,
+        date: dateInput ? new Date(dateInput + "T12:00:00").toISOString() : undefined,
       });
       setSelectedLift(null);
       setWeightInput("");
       setRepsInput("");
+      setDateInput("");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       Alert.alert("Failed to log", msg);
@@ -196,6 +200,16 @@ export default function Big3Screen() {
                             onChangeText={setRepsInput}
                           />
                         </View>
+                      </View>
+                      <View className="mb-3">
+                        <Text className="text-dark-300 text-xs mb-1">Date</Text>
+                        <TextInput
+                          className="bg-dark-700 text-white px-3 py-2.5 rounded-lg text-center"
+                          placeholder="YYYY-MM-DD"
+                          placeholderTextColor="#495057"
+                          value={dateInput}
+                          onChangeText={setDateInput}
+                        />
                       </View>
                       {readyToGoUp && (
                         <Text className="text-green-400 text-xs mb-3">
