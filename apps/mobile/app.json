@@ -15,7 +15,7 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.deezed.app"
+      "bundleIdentifier": "com.rajvirparmar.deezed"
     },
     "android": {
       "adaptiveIcon": {

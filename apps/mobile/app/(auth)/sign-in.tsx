@@ -14,23 +14,29 @@ export default function SignInScreen() {
   if (isSignedIn) return <Redirect href="/(app)/(tabs)" />;
 
   const handleSignIn = async () => {
-    if (!isLoaded) return;
-    if (isSignedIn) return; // already signed in, avoid "session already exists"
+    if (!isLoaded || !signIn) {
+      setError("Still loading, please wait…");
+      return;
+    }
+    if (isSignedIn) return;
     setError("");
     setLoading(true);
 
     try {
       const result = await signIn.create({
-        identifier: email,
+        identifier: email.trim(),
         password,
       });
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
+      } else {
+        setError(`Unexpected status: ${result.status}`);
       }
     } catch (err: unknown) {
-      const clerkError = err as { errors?: Array<{ message: string }> };
-      setError(clerkError.errors?.[0]?.message || "Sign in failed");
+      const clerkError = err as { errors?: Array<{ message: string; code?: string }> };
+      const msg = clerkError.errors?.[0]?.message || "Sign in failed";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -84,9 +90,9 @@ export default function SignInScreen() {
           ) : null}
 
           <TouchableOpacity
-            className="bg-brand-500 py-4 rounded-xl items-center mt-2"
+            className={`py-4 rounded-xl items-center mt-2 ${isLoaded ? "bg-brand-500" : "bg-brand-500/50"}`}
             onPress={handleSignIn}
-            disabled={loading}
+            disabled={loading || !isLoaded}
           >
             {loading ? (
               <ActivityIndicator color="white" />
