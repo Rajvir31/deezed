@@ -1,0 +1,11 @@
+---
+description: Git commit and push restrictions
+alwaysApply: true
+---
+
+# Git Commit Restrictions
+
+- **NEVER** run `git commit` or `git push` without explicit user permission.
+- When changes are ready to commit, show the user the `git status` and proposed commit message, then **ask for approval** before executing.
+- Never use `--trailer` in git commits.
+- Never set the author to "Cursor", "Cursor Agent", or any AI/agent identity.
